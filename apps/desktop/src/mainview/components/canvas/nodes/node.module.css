@@ -824,6 +824,19 @@
   background: var(--pin-unknown);
 }
 
+/* Invisible hit area — 24px circle around the visible 11px dot so you
+   don't have to land pixel-perfect when dragging a wire. */
+.pin::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
 /* Diamond exec pin via clip-path so it doesn't fight React Flow positioning */
 .pinExec {
   background: var(--pin-exec) !important;

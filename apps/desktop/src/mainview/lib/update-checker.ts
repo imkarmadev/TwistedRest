@@ -10,7 +10,7 @@
  */
 
 const REPO = "imkarmadev/TwistedRest";
-const CURRENT_VERSION = "0.2.0"; // keep in sync with tauri.conf.json
+const CURRENT_VERSION = "0.3.0"; // keep in sync with tauri.conf.json
 
 interface UpdateInfo {
   currentVersion: string;

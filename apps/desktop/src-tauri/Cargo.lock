@@ -4682,6 +4682,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
+ "tokio",
  "uuid",
  "window-vibrancy 0.5.3",
 ]
