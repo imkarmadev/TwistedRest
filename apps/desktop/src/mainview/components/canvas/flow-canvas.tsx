@@ -156,7 +156,7 @@ function FlowCanvasInner({
   const rfUpdateNodeInternals = useUpdateNodeInternals();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // ── Palette state ─────────────────────────────────────────
   // Open when the user right-clicks the pane, drops a pin onto empty
@@ -283,12 +283,13 @@ function FlowCanvasInner({
       setLoading(false);
 
       // Delay viewport restore so React Flow has time to measure nodes.
+      // The 300ms animation smooths the transition instead of a jarring snap.
       setTimeout(() => {
         if (cancelled) return;
         if (hasSavedViewport) {
-          reactFlow.setViewport(vp);
+          reactFlow.setViewport(vp, { duration: 300 });
         } else {
-          reactFlow.fitView({ padding: 0.35 });
+          reactFlow.fitView({ padding: 0.35, duration: 300 });
         }
       }, 50);
     });
@@ -715,6 +716,7 @@ function FlowCanvasInner({
         >
           <Background gap={24} color="rgba(255,255,255,0.05)" />
           <Controls className={s.controls} position="top-left" />
+          {loading && <div className={s.spinner} />}
           {showMinimap && <MiniMap pannable zoomable className={s.minimap} />}
         </ReactFlow>
 

@@ -168,7 +168,7 @@ export function Sidebar({
                       >
                         {f.name}
                       </button>
-                      {f.id === activeFlowId && rpc && (
+                      {rpc && (
                         <div className={s.flowIcons}>
                           <span
                             className={s.flowIcon}

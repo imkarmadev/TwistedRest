@@ -10,5 +10,5 @@
   left: var(--sidebar-w);
   right: 348px;
   height: 36px;
-  z-index: 55;
+  z-index: 75;
 }
