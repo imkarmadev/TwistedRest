@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import type { Node } from "@xyflow/react";
 import { zodFromJson, type DataType } from "@twistedrest/core";
 import { evalZodSchema } from "../../lib/eval-schema";
+import { copyCurlToClipboard } from "../../lib/copy-curl";
 import type { Environment } from "../../use-tauri";
 import { JsonToZodModal } from "./json-to-zod-modal";
 import s from "./inspector-panel.module.css";
@@ -367,6 +368,7 @@ interface LastResponseViewerProps {
 function LastResponseViewer({ result }: LastResponseViewerProps) {
   const [openResponse, setOpenResponse] = useState(true);
   const [openRequest, setOpenRequest] = useState(false);
+  const [curlCopied, setCurlCopied] = useState(false);
 
   if (!result || Object.keys(result).length === 0) {
     return (
@@ -393,16 +395,32 @@ function LastResponseViewer({ result }: LastResponseViewerProps) {
       {/* Request details (method, resolved URL, all headers including auth) */}
       {req && (
         <>
-          <button
-            type="button"
-            className={s.responseHeaderToggle}
-            onClick={() => setOpenRequest((v) => !v)}
-          >
-            <span className={s.label}>
-              Request — {req.method} {req.status}
-            </span>
-            <span className={s.chevron}>{openRequest ? "▾" : "▸"}</span>
-          </button>
+          <div className={s.responseHeader}>
+            <button
+              type="button"
+              className={s.responseHeaderToggle}
+              onClick={() => setOpenRequest((v) => !v)}
+              style={{ flex: 1 }}
+            >
+              <span className={s.label}>
+                Request — {req.method} {req.status}
+              </span>
+              <span className={s.chevron}>{openRequest ? "▾" : "▸"}</span>
+            </button>
+            <button
+              className={s.smallBtn}
+              onClick={async () => {
+                const ok = await copyCurlToClipboard(result);
+                if (ok) {
+                  setCurlCopied(true);
+                  setTimeout(() => setCurlCopied(false), 2000);
+                }
+              }}
+              title="Copy as curl command"
+            >
+              {curlCopied ? "Copied!" : "curl"}
+            </button>
+          </div>
           {openRequest && (
             <pre className={s.responseBody}>
               {`${req.method} ${req.url}\n\n${Object.entries(req.headers ?? {})

@@ -5,6 +5,27 @@ import type { RPC } from "../../use-tauri";
 import { exportFlow, importFlow } from "../../lib/flow-io";
 import s from "./sidebar.module.css";
 
+/** Duplicate a flow: fetch it, create a new one, save with same data. */
+async function duplicateFlow(rpc: RPC, flowId: string, projectId: string) {
+  const flow = await rpc.request.getFlow({ id: flowId });
+  if (!flow) return null;
+  const created = await rpc.request.createFlow({
+    projectId,
+    name: `${flow.name} (copy)`,
+  });
+  if (!created.id) return null;
+  const vp = (flow as unknown as Record<string, unknown>).viewport as
+    | { x: number; y: number; zoom: number }
+    | undefined;
+  await rpc.request.saveFlow({
+    id: created.id,
+    nodes: flow.nodes,
+    edges: flow.edges,
+    viewport: vp,
+  });
+  return created.id;
+}
+
 interface FlowItem {
   id: string;
   name: string;
@@ -35,6 +56,13 @@ export function Sidebar({
   const [creatingProject, setCreatingProject] = useState(false);
   const [creatingFlowFor, setCreatingFlowFor] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [confirmDeleteFlow, setConfirmDeleteFlow] = useState<string | null>(null);
+
+  const refreshFlows = async (projId: string) => {
+    if (!rpc) return;
+    const list = await rpc.request.listFlows({ projectId: projId });
+    setFlowsByProject((prev) => ({ ...prev, [projId]: list }));
+  };
 
   // Refetch flows when the active project changes OR when the active flow
   // changes (which happens after App auto-creates the "main" flow for a
@@ -141,16 +169,59 @@ export function Sidebar({
                         {f.name}
                       </button>
                       {f.id === activeFlowId && rpc && (
-                        <span
-                          className={s.flowExport}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void exportFlow(rpc, f.id);
-                          }}
-                          title="Export flow as JSON"
-                        >
-                          ↓
-                        </span>
+                        <div className={s.flowIcons}>
+                          <span
+                            className={s.flowIcon}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void duplicateFlow(rpc, f.id, p.id).then((newId) => {
+                                if (newId) {
+                                  void refreshFlows(p.id);
+                                  onSelectFlow(newId);
+                                }
+                              });
+                            }}
+                            title="Duplicate flow"
+                          >
+                            ⧉
+                          </span>
+                          <span
+                            className={s.flowIcon}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void exportFlow(rpc, f.id);
+                            }}
+                            title="Export flow as JSON"
+                          >
+                            ↓
+                          </span>
+                          <span
+                            className={clsx(
+                              s.flowIcon,
+                              confirmDeleteFlow === f.id && s.flowIconDanger,
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirmDeleteFlow !== f.id) {
+                                setConfirmDeleteFlow(f.id);
+                                setTimeout(() => setConfirmDeleteFlow(null), 3000);
+                                return;
+                              }
+                              void rpc.request.deleteFlow({ id: f.id }).then(() => {
+                                setConfirmDeleteFlow(null);
+                                void refreshFlows(p.id);
+                                if (activeFlowId === f.id) onSelectFlow("");
+                              });
+                            }}
+                            title={
+                              confirmDeleteFlow === f.id
+                                ? "Click again to delete"
+                                : "Delete flow"
+                            }
+                          >
+                            {confirmDeleteFlow === f.id ? "!" : "×"}
+                          </span>
+                        </div>
                       )}
                     </div>
                   ))}

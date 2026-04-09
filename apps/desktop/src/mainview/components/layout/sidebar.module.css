@@ -156,18 +156,37 @@
   align-items: center;
 }
 
-.flowExport {
-  font-size: 12px;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 3px;
+.flowIcons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   flex-shrink: 0;
 }
 
-.flowExport:hover {
+.flowIcon {
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.flowIcon:hover {
   color: var(--accent);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.flowIconDanger {
+  color: #fca5a5 !important;
+  background: rgba(231, 76, 60, 0.15);
+  font-weight: 700;
+}
+
+.flowIconDanger:hover {
+  color: #fff !important;
+  background: rgba(231, 76, 60, 0.5);
 }
 
 .flowActions {
