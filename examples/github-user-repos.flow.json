@@ -1,0 +1,117 @@
+{
+  "twistedrest": 1,
+  "name": "GitHub User Repos",
+  "nodes": [
+    {
+      "id": "start",
+      "kind": "start",
+      "position": { "x": 60, "y": 200 },
+      "config": { "environmentId": null }
+    },
+    {
+      "id": "env-user",
+      "kind": "envVar",
+      "position": { "x": 60, "y": 380 },
+      "config": { "varKey": "username" }
+    },
+    {
+      "id": "convert-user",
+      "kind": "convert",
+      "position": { "x": 240, "y": 380 },
+      "config": { "targetType": "string" }
+    },
+    {
+      "id": "http-user",
+      "kind": "httpRequest",
+      "position": { "x": 320, "y": 160 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.github.com/users/#{username}",
+        "headers": [{ "key": "Accept", "value": "application/vnd.github.v3+json", "enabled": true }],
+        "body": "",
+        "responseSchema": "z.object({\n  login: z.string(),\n  name: z.string().nullable(),\n  public_repos: z.number(),\n  followers: z.number()\n})"
+      }
+    },
+    {
+      "id": "log-user",
+      "kind": "log",
+      "position": { "x": 640, "y": 100 },
+      "config": { "label": "User info" }
+    },
+    {
+      "id": "make-user",
+      "kind": "makeObject",
+      "position": { "x": 640, "y": 240 },
+      "config": {
+        "fields": [
+          { "key": "name", "type": "string" },
+          { "key": "repos", "type": "number" },
+          { "key": "followers", "type": "number" }
+        ]
+      }
+    },
+    {
+      "id": "http-repos",
+      "kind": "httpRequest",
+      "position": { "x": 640, "y": 420 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.github.com/users/#{username}/repos?sort=stars&per_page=5",
+        "headers": [{ "key": "Accept", "value": "application/vnd.github.v3+json", "enabled": true }],
+        "body": "",
+        "responseSchema": "z.array(z.object({\n  name: z.string(),\n  stargazers_count: z.number(),\n  language: z.string().nullable(),\n  description: z.string().nullable()\n}))"
+      }
+    },
+    {
+      "id": "foreach-repos",
+      "kind": "forEachSequential",
+      "position": { "x": 960, "y": 380 },
+      "config": {}
+    },
+    {
+      "id": "break-repo",
+      "kind": "breakObject",
+      "position": { "x": 1200, "y": 420 },
+      "config": {}
+    },
+    {
+      "id": "log-repo",
+      "kind": "log",
+      "position": { "x": 1200, "y": 260 },
+      "config": { "label": "Top repo" }
+    },
+    {
+      "id": "make-repo",
+      "kind": "makeObject",
+      "position": { "x": 1440, "y": 340 },
+      "config": {
+        "fields": [
+          { "key": "name", "type": "string" },
+          { "key": "stars", "type": "number" },
+          { "key": "language", "type": "string" }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "kind": "exec", "fromNode": "start", "fromPin": "exec-out", "toNode": "http-user", "toPin": "exec-in" },
+    { "id": "e2", "kind": "exec", "fromNode": "http-user", "fromPin": "exec-out", "toNode": "log-user", "toPin": "exec-in" },
+    { "id": "e3", "kind": "exec", "fromNode": "log-user", "fromPin": "exec-out", "toNode": "http-repos", "toPin": "exec-in" },
+    { "id": "e4", "kind": "exec", "fromNode": "http-repos", "fromPin": "exec-out", "toNode": "foreach-repos", "toPin": "exec-in" },
+    { "id": "e5", "kind": "exec", "fromNode": "foreach-repos", "fromPin": "exec-body", "toNode": "log-repo", "toPin": "exec-in" },
+    { "id": "d1", "kind": "data", "fromNode": "env-user", "fromPin": "out:value", "toNode": "convert-user", "toPin": "in:value" },
+    { "id": "d2", "kind": "data", "fromNode": "convert-user", "fromPin": "out:value", "toNode": "http-user", "toPin": "in:username" },
+    { "id": "d3", "kind": "data", "fromNode": "convert-user", "fromPin": "out:value", "toNode": "http-repos", "toPin": "in:username" },
+    { "id": "d4", "kind": "data", "fromNode": "http-user", "fromPin": "out:name", "toNode": "make-user", "toPin": "in:name" },
+    { "id": "d5", "kind": "data", "fromNode": "http-user", "fromPin": "out:public_repos", "toNode": "make-user", "toPin": "in:repos" },
+    { "id": "d6", "kind": "data", "fromNode": "http-user", "fromPin": "out:followers", "toNode": "make-user", "toPin": "in:followers" },
+    { "id": "d7", "kind": "data", "fromNode": "make-user", "fromPin": "out:object", "toNode": "log-user", "toPin": "in:value" },
+    { "id": "d8", "kind": "data", "fromNode": "http-repos", "fromPin": "out:value", "toNode": "foreach-repos", "toPin": "in:array" },
+    { "id": "d9", "kind": "data", "fromNode": "foreach-repos", "fromPin": "out:item", "toNode": "break-repo", "toPin": "in:object" },
+    { "id": "d10", "kind": "data", "fromNode": "break-repo", "fromPin": "out:name", "toNode": "make-repo", "toPin": "in:name" },
+    { "id": "d11", "kind": "data", "fromNode": "break-repo", "fromPin": "out:stargazers_count", "toNode": "make-repo", "toPin": "in:stars" },
+    { "id": "d12", "kind": "data", "fromNode": "break-repo", "fromPin": "out:language", "toNode": "make-repo", "toPin": "in:language" },
+    { "id": "d13", "kind": "data", "fromNode": "make-repo", "fromPin": "out:object", "toNode": "log-repo", "toPin": "in:value" }
+  ],
+  "viewport": { "x": 30, "y": 30, "zoom": 0.8 }
+}

@@ -101,11 +101,36 @@ for (const file of FILES) {
   }
 }
 
+// Generate commit log since last tag for release notes
+let commitLog = "";
+try {
+  const lastTag = execSync("git describe --tags --abbrev=0 2>/dev/null", {
+    cwd: ROOT,
+    encoding: "utf-8",
+  }).trim();
+  commitLog = execSync(`git log ${lastTag}..HEAD --oneline --no-decorate`, {
+    cwd: ROOT,
+    encoding: "utf-8",
+  }).trim();
+} catch {
+  commitLog = execSync("git log --oneline --no-decorate -20", {
+    cwd: ROOT,
+    encoding: "utf-8",
+  }).trim();
+}
+
+if (commitLog) {
+  console.log("\n  Commits since last release:");
+  for (const line of commitLog.split("\n")) {
+    console.log(`    ${line}`);
+  }
+}
+
 // Git commit + tag + push
 console.log("");
 run(`git add -A`);
 run(`git commit -m "release: ${tag}"`);
-run(`git tag ${tag}`);
+run(`git tag -a ${tag} -m "${tag}\n\n${commitLog.replace(/"/g, '\\"')}"`);
 run(`git push`);
 run(`git push origin ${tag}`);
 

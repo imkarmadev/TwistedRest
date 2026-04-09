@@ -1,0 +1,93 @@
+{
+  "twistedrest": 1,
+  "name": "Weather with Error Handling",
+  "nodes": [
+    {
+      "id": "start",
+      "kind": "start",
+      "position": { "x": 60, "y": 200 },
+      "config": { "environmentId": null }
+    },
+    {
+      "id": "env-city",
+      "kind": "envVar",
+      "position": { "x": 60, "y": 380 },
+      "config": { "varKey": "city" }
+    },
+    {
+      "id": "http-weather",
+      "kind": "httpRequest",
+      "position": { "x": 320, "y": 160 },
+      "config": {
+        "method": "GET",
+        "url": "https://wttr.in/#{city}?format=j1",
+        "headers": [],
+        "body": "",
+        "responseSchema": "z.object({\n  current_condition: z.array(z.object({\n    temp_C: z.string(),\n    weatherDesc: z.array(z.object({ value: z.string() })),\n    humidity: z.string(),\n    windspeedKmph: z.string()\n  }))\n})"
+      }
+    },
+    {
+      "id": "match-status",
+      "kind": "match",
+      "position": { "x": 640, "y": 160 },
+      "config": {
+        "cases": [
+          { "value": "200", "label": "OK" }
+        ]
+      }
+    },
+    {
+      "id": "break-weather",
+      "kind": "breakObject",
+      "position": { "x": 900, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "log-weather",
+      "kind": "log",
+      "position": { "x": 900, "y": 240 },
+      "config": { "label": "Weather data" }
+    },
+    {
+      "id": "log-error",
+      "kind": "log",
+      "position": { "x": 900, "y": 400 },
+      "config": { "label": "Weather API error" }
+    },
+    {
+      "id": "fn-format",
+      "kind": "function",
+      "position": { "x": 1160, "y": 60 },
+      "config": {
+        "name": "formatWeather",
+        "inputs": [
+          { "key": "conditions", "type": "array" }
+        ],
+        "outputs": [
+          { "key": "summary", "type": "string" }
+        ],
+        "code": "const c = inputs.conditions?.[0];\nif (!c) return { summary: 'No data' };\nreturn {\n  summary: `${c.temp_C}°C, ${c.weatherDesc?.[0]?.value ?? 'unknown'}, humidity ${c.humidity}%, wind ${c.windspeedKmph} km/h`\n}"
+      }
+    },
+    {
+      "id": "log-summary",
+      "kind": "log",
+      "position": { "x": 1160, "y": 240 },
+      "config": { "label": "Weather summary" }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "kind": "exec", "fromNode": "start", "fromPin": "exec-out", "toNode": "http-weather", "toPin": "exec-in" },
+    { "id": "e2", "kind": "exec", "fromNode": "http-weather", "fromPin": "exec-out", "toNode": "match-status", "toPin": "exec-in" },
+    { "id": "e3", "kind": "exec", "fromNode": "match-status", "fromPin": "exec-case:0", "toNode": "log-weather", "toPin": "exec-in" },
+    { "id": "e4", "kind": "exec", "fromNode": "match-status", "fromPin": "exec-default", "toNode": "log-error", "toPin": "exec-in" },
+    { "id": "e5", "kind": "exec", "fromNode": "log-weather", "fromPin": "exec-out", "toNode": "log-summary", "toPin": "exec-in" },
+    { "id": "d1", "kind": "data", "fromNode": "env-city", "fromPin": "out:value", "toNode": "http-weather", "toPin": "in:city" },
+    { "id": "d2", "kind": "data", "fromNode": "http-weather", "fromPin": "out:status", "toNode": "match-status", "toPin": "in:value" },
+    { "id": "d3", "kind": "data", "fromNode": "http-weather", "fromPin": "out:current_condition", "toNode": "break-weather", "toPin": "in:object" },
+    { "id": "d4", "kind": "data", "fromNode": "http-weather", "fromPin": "out:current_condition", "toNode": "log-weather", "toPin": "in:value" },
+    { "id": "d5", "kind": "data", "fromNode": "http-weather", "fromPin": "out:current_condition", "toNode": "fn-format", "toPin": "in:conditions" },
+    { "id": "d6", "kind": "data", "fromNode": "fn-format", "fromPin": "out:summary", "toNode": "log-summary", "toPin": "in:value" }
+  ],
+  "viewport": { "x": 30, "y": 30, "zoom": 0.85 }
+}
