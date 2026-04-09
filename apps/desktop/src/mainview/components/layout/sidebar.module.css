@@ -1,0 +1,215 @@
+.sidebar {
+  /*
+   * Full-height inset island. Starts at top:8 (above the title bar area)
+   * and runs to bottom:8. The macOS native traffic lights overlap the
+   * top of this island at trafficLightPosition (18, 22), positioned
+   * inside the .dragHandle area below.
+   */
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  bottom: 8px;
+  width: calc(var(--sidebar-w) - 8px);
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  background: var(--material-pane);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/*
+ * Drag handle = the empty area at the top of the sidebar that the OS
+ * draws traffic lights onto. Since it has no children, all clicks fall
+ * through to Tauri's drag-region handler.
+ */
+.dragHandle {
+  flex: 0 0 36px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 10px;
+}
+
+.headerLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.addBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: none;
+  background: var(--glass);
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.addBtn:hover {
+  background: var(--glass-hover);
+  color: var(--text-primary);
+}
+
+.list {
+  flex: 1;
+  padding: 4px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+}
+
+.projectGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.projectItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.projectItem:hover {
+  background: var(--glass);
+  color: var(--text-primary);
+}
+
+.projectItemActive {
+  background: var(--glass);
+  color: var(--text-primary);
+}
+
+.chevron {
+  font-size: 9px;
+  width: 10px;
+  display: inline-block;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.projectName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.gear:hover {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.flowList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 8px 22px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.flowItem {
+  text-align: left;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.flowItem:hover {
+  background: var(--glass);
+  color: var(--text-primary);
+}
+
+.flowItemActive {
+  background: var(--accent-bg);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.flowItemActive:hover {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.addFlow {
+  text-align: left;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.addFlow:hover {
+  color: var(--accent);
+}
+
+.input {
+  margin: 4px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--accent-border);
+  background: var(--bg-float);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.emptyHint {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}

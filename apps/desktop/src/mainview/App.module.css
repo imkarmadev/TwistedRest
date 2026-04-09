@@ -1,0 +1,47 @@
+/*
+ * The chrome (sidebar, inspector, title bar) is positioned absolutely on
+ * top of the canvas — not as flex siblings — so backdrop-filter on each
+ * panel actually has the canvas content underneath to blur. That's what
+ * gives the liquid glass effect: nodes near the screen edges are visible
+ * through the panels with a soft blur.
+ */
+
+.root {
+  position: absolute;
+  inset: 0;
+}
+
+/* No CSS material div — vibrancy is provided natively by NSVisualEffectView */
+
+.body {
+  position: absolute;
+  inset: 0;
+}
+
+.content {
+  position: absolute;
+  inset: 0;
+  background: var(--canvas-body);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.emptyTitle {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.emptyDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@twistedrest/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TwistedRest — visual API workflow builder",
+  "scripts": {
+    "dev": "tauri dev",
+    "tauri": "tauri",
+    "hmr": "vite --port 5173",
+    "vite:build": "vite build",
+    "build": "tauri build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "@twistedrest/core": "workspace:*",
+    "@twistedrest/shared": "workspace:*",
+    "@xyflow/react": "^12.0.0",
+    "clsx": "^2.1.1",
+    "monaco-editor": "^0.55.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.3"
+  }
+}

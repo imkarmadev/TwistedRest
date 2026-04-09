@@ -1,0 +1,92 @@
+.canvas {
+  position: absolute;
+  inset: 0;
+  background: var(--canvas-body);
+}
+
+.toolbar {
+  position: absolute;
+  top: 44px;
+  left: calc(var(--sidebar-w) + 12px);
+  z-index: 30;
+  display: flex;
+  gap: 6px;
+}
+
+.toolBtn {
+  padding: 7px 14px;
+  /* Floating capsule — plain wash, no backdrop-filter (single-layer rule) */
+  background: var(--material-pane-hi);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow:
+    var(--glass-highlight-strong),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 6px 18px rgba(0, 0, 0, 0.4);
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.toolBtn:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* React Flow controls — bottom-left, plain glass wash */
+.controls :global(.react-flow__controls-button) {
+  background: var(--material-pane-hi) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-primary) !important;
+  fill: var(--text-primary) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.controls :global(.react-flow__controls-button:hover) {
+  background: rgba(76, 194, 255, 0.12) !important;
+  color: var(--accent) !important;
+  fill: var(--accent) !important;
+}
+
+.controls {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--glass-highlight), 0 8px 20px rgba(0, 0, 0, 0.35);
+  /* Top-left, just below the toolbar. Stays clear of the console panel
+     at the bottom regardless of whether it's open or closed. */
+  margin-left: calc(var(--sidebar-w) + 12px) !important;
+  margin-top: 88px !important;
+}
+
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  background: var(--canvas-body, #14182a);
+  pointer-events: none;
+}
+
+.minimap {
+  background: var(--material-pane-hi) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--glass-highlight-strong), 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* Edge styling — slightly thicker, soft glow */
+:global(.react-flow__edge-path) {
+  stroke: rgba(255, 255, 255, 0.55) !important;
+  stroke-width: 1.6 !important;
+}
+
+:global(.react-flow__edge.selected .react-flow__edge-path),
+:global(.react-flow__edge:hover .react-flow__edge-path) {
+  stroke: var(--accent) !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 4px rgba(76, 194, 255, 0.5));
+}

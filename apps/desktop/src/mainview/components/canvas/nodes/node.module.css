@@ -1,0 +1,842 @@
+/*
+ * Shared node styling. Mimics Unreal Blueprint nodes:
+ *   - Glassy translucent body with a colored gradient header strip
+ *   - Pin handles drawn with clip-path so React Flow's transform isn't fought
+ *   - Method badges follow the Postman/Insomnia color convention
+ */
+
+.node {
+  min-width: 240px;
+  /* Layer 4 — plain dark wash, no backdrop-filter (single-layer rule) */
+  background: var(--node-glass);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-md);
+  box-shadow:
+    var(--glass-highlight-strong),
+    0 20px 48px rgba(0, 0, 0, 0.55),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  overflow: visible;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.nodeSelected {
+  border-color: var(--accent);
+  box-shadow:
+    var(--glass-highlight-strong),
+    0 0 0 1px var(--accent),
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(76, 194, 255, 0.18);
+}
+
+/* ── Executor status borders ───────────────────────────── */
+
+.statusPending {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.statusRunning {
+  border-color: var(--accent);
+  box-shadow:
+    var(--glass-highlight-strong),
+    0 0 0 1px var(--accent),
+    0 0 24px rgba(76, 194, 255, 0.4);
+  animation: nodePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% { box-shadow: var(--glass-highlight-strong), 0 0 0 1px var(--accent), 0 0 18px rgba(76, 194, 255, 0.3); }
+  50%      { box-shadow: var(--glass-highlight-strong), 0 0 0 1px var(--accent), 0 0 32px rgba(76, 194, 255, 0.55); }
+}
+
+.statusOk {
+  border-color: var(--success);
+  box-shadow:
+    var(--glass-highlight-strong),
+    0 0 0 1px var(--success),
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(46, 204, 113, 0.25);
+}
+
+.statusError {
+  border-color: var(--danger);
+  box-shadow:
+    var(--glass-highlight-strong),
+    0 0 0 1px var(--danger),
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(231, 76, 60, 0.3);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-left: auto;
+}
+
+.errorText {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--danger);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.startNode {
+  min-width: 220px;
+}
+
+.envVarNode {
+  min-width: 180px;
+}
+
+.breakObjectNode {
+  min-width: 200px;
+}
+
+.forEachNode {
+  min-width: 240px;
+}
+
+.convertNode {
+  min-width: 180px;
+}
+
+.eventNode {
+  min-width: 220px;
+}
+
+.tapNode {
+  min-width: 220px;
+  max-width: 320px;
+}
+
+.logNode {
+  min-width: 200px;
+}
+
+.makeObjectNode {
+  min-width: 200px;
+}
+
+.functionNode {
+  min-width: 240px;
+}
+
+.matchNode {
+  min-width: 220px;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pinName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 110px;
+}
+
+/*
+ * Node header — true Liquid Glass material per Apple's HIG (WWDC25):
+ *
+ *   layer 1  specular highlight (radial spotlight at top center)
+ *   layer 2  tinted color wash (the "material colour")
+ *   shadow A bright 1px rim at the very top edge       — caught light
+ *   shadow B soft inner glow falling off below the rim — refraction
+ *   shadow C thin dark seam at the bottom              — glass thickness
+ *
+ * The parent .node already provides the backdrop-filter blur, so the header
+ * just layers translucent paint on top to create the glassy appearance.
+ */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+
+  box-shadow:
+    /* A — bright top rim */
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    /* B — soft white refraction glow under the rim */
+    inset 0 6px 10px -6px rgba(255, 255, 255, 0.18),
+    /* C — bottom seam */
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.headerHttp {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(76, 194, 255, 0.34) 0%,
+      rgba(76, 194, 255, 0.18) 45%,
+      rgba(76, 194, 255, 0.06) 100%
+    );
+}
+
+.headerStart {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.28) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(46, 204, 113, 0.36) 0%,
+      rgba(46, 204, 113, 0.18) 45%,
+      rgba(46, 204, 113, 0.06) 100%
+    );
+}
+
+.headerEnvVar {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(193, 119, 255, 0.36) 0%,
+      rgba(193, 119, 255, 0.18) 45%,
+      rgba(193, 119, 255, 0.06) 100%
+    );
+}
+
+.headerBreakObject {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 167, 38, 0.34) 0%,
+      rgba(255, 167, 38, 0.16) 45%,
+      rgba(255, 167, 38, 0.06) 100%
+    );
+}
+
+.headerForEachSequential {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 87, 178, 0.34) 0%,
+      rgba(255, 87, 178, 0.16) 45%,
+      rgba(255, 87, 178, 0.06) 100%
+    );
+}
+
+.headerForEachParallel {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 71, 87, 0.34) 0%,
+      rgba(255, 71, 87, 0.16) 45%,
+      rgba(255, 71, 87, 0.06) 100%
+    );
+}
+
+.forEachBadgeSequential {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(255, 87, 178, 0.4), rgba(255, 87, 178, 0.18));
+  color: #fda4af;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.forEachBadgeParallel {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(255, 71, 87, 0.4), rgba(255, 71, 87, 0.18));
+  color: #fca5a5;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerConvert {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(120, 220, 200, 0.34) 0%,
+      rgba(120, 220, 200, 0.16) 45%,
+      rgba(120, 220, 200, 0.06) 100%
+    );
+}
+
+.convertBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(120, 220, 200, 0.4), rgba(120, 220, 200, 0.18));
+  color: #99f6e4;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerEmitEvent {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 196, 0, 0.34) 0%,
+      rgba(255, 196, 0, 0.16) 45%,
+      rgba(255, 196, 0, 0.06) 100%
+    );
+}
+
+.headerOnEvent {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 220, 100, 0.34) 0%,
+      rgba(255, 220, 100, 0.16) 45%,
+      rgba(255, 220, 100, 0.06) 100%
+    );
+}
+
+.emitBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(255, 196, 0, 0.4), rgba(255, 196, 0, 0.18));
+  color: #fde68a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.onBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(255, 220, 100, 0.4), rgba(255, 220, 100, 0.18));
+  color: #fef3c7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerTap {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(150, 200, 255, 0.34) 0%,
+      rgba(150, 200, 255, 0.16) 45%,
+      rgba(150, 200, 255, 0.06) 100%
+    );
+}
+
+.tapBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(150, 200, 255, 0.4), rgba(150, 200, 255, 0.18));
+  color: #bae6fd;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerLog {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(100, 200, 220, 0.34) 0%,
+      rgba(100, 200, 220, 0.16) 45%,
+      rgba(100, 200, 220, 0.06) 100%
+    );
+}
+
+.logBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(100, 200, 220, 0.4), rgba(100, 200, 220, 0.18));
+  color: #a5f3fc;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerMakeObject {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(180, 130, 255, 0.34) 0%,
+      rgba(180, 130, 255, 0.16) 45%,
+      rgba(180, 130, 255, 0.06) 100%
+    );
+}
+
+.makeBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(180, 130, 255, 0.4), rgba(180, 130, 255, 0.18));
+  color: #d8b4fe;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.headerFunction {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(59, 130, 246, 0.34) 0%,
+      rgba(59, 130, 246, 0.16) 45%,
+      rgba(59, 130, 246, 0.06) 100%
+    );
+}
+
+.headerMatch {
+  background:
+    radial-gradient(
+      ellipse 90% 70% at 50% -20%,
+      rgba(255, 255, 255, 0.24) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(245, 158, 11, 0.34) 0%,
+      rgba(245, 158, 11, 0.16) 45%,
+      rgba(245, 158, 11, 0.06) 100%
+    );
+}
+
+.matchBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.4), rgba(245, 158, 11, 0.18));
+  color: #fcd34d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.fnBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.18));
+  color: #93c5fd;
+  font-family: var(--font-mono);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.tapValue {
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tapCount {
+  font-size: 10px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.breakBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(255, 167, 38, 0.4), rgba(255, 167, 38, 0.18));
+  color: #fcd34d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.envBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, rgba(193, 119, 255, 0.4), rgba(193, 119, 255, 0.18));
+  color: #d8b4fe;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.envValuePreview {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+
+.envMissing {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #fca5a5;
+  background: rgba(231, 76, 60, 0.10);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+
+.envMissing strong {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.headerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  color: var(--success);
+}
+
+.headerTitle {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.method {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  /* Mini glass pill — same recipe as the header but tighter */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.methodGet {
+  background: linear-gradient(180deg, rgba(46, 204, 113, 0.38), rgba(46, 204, 113, 0.18));
+  color: #6ee7b7;
+}
+.methodPost {
+  background: linear-gradient(180deg, rgba(243, 156, 18, 0.38), rgba(243, 156, 18, 0.18));
+  color: #fcd34d;
+}
+.methodPut {
+  background: linear-gradient(180deg, rgba(52, 152, 219, 0.38), rgba(52, 152, 219, 0.18));
+  color: #93c5fd;
+}
+.methodPatch {
+  background: linear-gradient(180deg, rgba(155, 89, 182, 0.38), rgba(155, 89, 182, 0.18));
+  color: #d8b4fe;
+}
+.methodDelete {
+  background: linear-gradient(180deg, rgba(231, 76, 60, 0.38), rgba(231, 76, 60, 0.18));
+  color: #fca5a5;
+}
+
+.body {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.urlText {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  margin-top: 2px;
+}
+
+.envSelect {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  outline: none;
+}
+
+.envSelect:focus {
+  border-color: var(--accent);
+}
+
+.runBtn {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(76, 194, 255, 0.4);
+  background:
+    radial-gradient(
+      ellipse 90% 100% at 50% -30%,
+      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(180deg, rgba(76, 194, 255, 0.32) 0%, rgba(76, 194, 255, 0.10) 100%);
+  color: #c3e8ff;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 4px 14px rgba(76, 194, 255, 0.18);
+  transition: filter 120ms ease, box-shadow 120ms ease;
+}
+
+.runBtn:hover:not(:disabled) {
+  filter: brightness(1.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 6px 18px rgba(76, 194, 255, 0.28);
+}
+
+.runBtn:active:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.runBtn:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.6) brightness(0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.stopBtn {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  background:
+    radial-gradient(
+      ellipse 90% 100% at 50% -30%,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(180deg, rgba(231, 76, 60, 0.35) 0%, rgba(231, 76, 60, 0.12) 100%);
+  color: #fca5a5;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+    0 4px 14px rgba(231, 76, 60, 0.2);
+}
+
+.stopBtn:hover {
+  filter: brightness(1.15);
+}
+
+.runReason {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #fca5a5;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+}
+
+/* ── Pin rows ─────────────────────────────────────────── */
+
+.pinRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  min-height: 22px;
+  position: relative;
+}
+
+.pinRow:last-child {
+  padding-bottom: 10px;
+}
+
+.pinSpacer {
+  flex: 0 0 1px;
+}
+
+.pinLabelLeft,
+.pinLabelRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  position: relative;
+}
+
+.pinLabelLeft {
+  padding-left: 14px;
+}
+
+.pinLabelRight {
+  margin-left: auto;
+  padding-right: 14px;
+}
+
+/* ── Pin handles ──────────────────────────────────────── */
+/*
+ * IMPORTANT: do NOT set transform on the handle — React Flow uses
+ * transform internally to position handles on the node edge. Override
+ * appearance via background, border, and clip-path only.
+ */
+
+.pin {
+  width: 11px !important;
+  height: 11px !important;
+  border: 1px solid rgba(0, 0, 0, 0.55) !important;
+  background: var(--pin-unknown);
+}
+
+/* Diamond exec pin via clip-path so it doesn't fight React Flow positioning */
+.pinExec {
+  background: var(--pin-exec) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  width: 13px !important;
+  height: 13px !important;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.25));
+}
+
+.pinObject  { background: var(--pin-object) !important;  border-radius: 50% !important; }
+.pinString  { background: var(--pin-string) !important;  border-radius: 50% !important; }
+.pinNumber  { background: var(--pin-number) !important;  border-radius: 50% !important; }
+.pinBoolean { background: var(--pin-boolean) !important; border-radius: 50% !important; }
+.pinArray   { background: var(--pin-array) !important;   border-radius: 50% !important; }
