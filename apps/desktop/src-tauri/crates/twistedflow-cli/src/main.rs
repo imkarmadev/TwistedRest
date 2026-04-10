@@ -49,14 +49,22 @@ enum Commands {
         #[arg(long, short)]
         quiet: bool,
     },
-    /// Compile a flow or project into a standalone binary
+    /// Compile a flow into a standalone binary
     Build {
-        /// Path to .flow.json file or project directory
-        input: PathBuf,
+        /// Project directory (must contain twistedflow.toml)
+        project: PathBuf,
 
         /// Output binary path
         #[arg(short, long)]
         output: String,
+
+        /// Flow to embed (name without .flow.json). Default: first found.
+        #[arg(long)]
+        flow: Option<String>,
+
+        /// Environment to bake in (.env.NAME). Default: "default" (.env)
+        #[arg(long, default_value = "default")]
+        env: String,
 
         /// Debug build (faster compile, larger binary)
         #[arg(long)]
@@ -79,8 +87,8 @@ async fn main() {
             let code = run_flow(file, plugins, env_vars, base_url, quiet).await;
             std::process::exit(code);
         }
-        Commands::Build { input, output, debug } => {
-            if let Err(e) = build::build(&input, &output, !debug) {
+        Commands::Build { project, output, flow, env, debug } => {
+            if let Err(e) = build::build(&project, &output, flow.as_deref(), &env, !debug) {
                 eprintln!("Build failed: {}", e);
                 std::process::exit(1);
             }
