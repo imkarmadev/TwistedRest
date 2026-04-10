@@ -32,6 +32,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
 import {
   type NodeStatus,
   type DataType,
@@ -564,6 +565,59 @@ function FlowCanvasInner({
     void invoke("stop_flow");
   }, []);
 
+  // ── Build flow to binary ──────────────────────────────────────
+  const [building, setBuilding] = useState(false);
+  const [buildStatus, setBuildStatus] = useState<{
+    stage: "idle" | "preparing" | "compiling" | "done" | "error";
+    message: string;
+  }>({ stage: "idle", message: "" });
+
+  const buildFlow = useCallback(async () => {
+    if (building || !projectPath || !flowFilename) return;
+
+    // Pick output location
+    const outputPath = await saveDialog({
+      title: "Save Binary As",
+      defaultPath: flowFilename.replace(".flow.json", "").replace(".json", ""),
+    });
+    if (!outputPath) return;
+
+    setBuilding(true);
+    setBuildStatus({ stage: "preparing", message: "Preparing build..." });
+
+    // Listen for progress events
+    const unlisten = await listen<{ stage: string; message: string }>("build:progress", (e) => {
+      setBuildStatus({
+        stage: e.payload.stage as "preparing" | "compiling" | "done" | "error",
+        message: e.payload.message,
+      });
+    });
+
+    try {
+      // Get active env name
+      const startNode = nodesRef.current.find((n) => n.type === "start");
+      const envFilename = (startNode?.data as { environmentFilename?: string })?.environmentFilename;
+      const envName = envFilename === ".env" ? "default"
+        : envFilename?.replace(".env.", "") ?? "default";
+
+      await invoke("build_flow", {
+        projectPath,
+        flowFilename,
+        envName,
+        outputPath,
+      });
+    } catch (err) {
+      setBuildStatus({ stage: "error", message: String(err) });
+    } finally {
+      unlisten();
+      setBuilding(false);
+      // Auto-hide success after 5s
+      setTimeout(() => {
+        setBuildStatus((prev) => prev.stage === "done" ? { stage: "idle", message: "" } : prev);
+      }, 5000);
+    }
+  }, [building, projectPath, flowFilename]);
+
   const execContextValue = useMemo<FlowExecContextValue>(
     () => ({
       run,
@@ -747,7 +801,38 @@ function FlowCanvasInner({
           <button className={s.toolBtn} onClick={openPaletteAtCenter} title="Right-click canvas, drag a pin to empty space, or press Space">
             + Add Node
           </button>
+          <button
+            className={s.toolBtn}
+            onClick={() => void buildFlow()}
+            disabled={building || !projectPath}
+            title="Compile this flow into a standalone binary"
+          >
+            {building ? "Building..." : "Build"}
+          </button>
         </div>
+
+        {/* Build progress overlay */}
+        {buildStatus.stage !== "idle" && (
+          <div className={s.buildOverlay}>
+            <div className={`${s.buildCard} ${
+              buildStatus.stage === "error" ? s.buildError :
+              buildStatus.stage === "done" ? s.buildDone : ""
+            }`}>
+              {buildStatus.stage === "compiling" && <div className={s.buildSpinner} />}
+              {buildStatus.stage === "done" && <span className={s.buildIcon}>✓</span>}
+              {buildStatus.stage === "error" && <span className={s.buildIcon}>✗</span>}
+              <span className={s.buildMessage}>{buildStatus.message}</span>
+              {(buildStatus.stage === "done" || buildStatus.stage === "error") && (
+                <button
+                  className={s.buildDismiss}
+                  onClick={() => setBuildStatus({ stage: "idle", message: "" })}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         <ReactFlow
           nodes={nodes}

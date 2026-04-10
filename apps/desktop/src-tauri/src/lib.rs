@@ -103,6 +103,7 @@ pub fn run() {
             executor_commands::run_flow,
             executor_commands::stop_flow,
             executor_commands::list_node_types,
+            executor_commands::build_flow,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

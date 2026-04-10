@@ -149,3 +149,98 @@ pub fn list_node_types() -> serde_json::Value {
 
     serde_json::Value::Array(all)
 }
+
+/// Build a flow into a standalone binary.
+/// Streams progress via "build:progress" events.
+#[tauri::command]
+pub async fn build_flow(
+    app: AppHandle,
+    project_path: String,
+    flow_filename: String,
+    env_name: String,
+    output_path: String,
+) -> Result<String, String> {
+    // Resolve the flow name from filename (strip .flow.json)
+    let flow_name = flow_filename
+        .strip_suffix(".flow.json")
+        .or_else(|| flow_filename.strip_suffix(".json"))
+        .unwrap_or(&flow_filename)
+        .to_string();
+
+    let _ = app.emit("build:progress", serde_json::json!({
+        "stage": "preparing",
+        "message": "Preparing build...",
+    }));
+
+    // Find the twistedflow-cli binary — it's in the same target dir as this binary
+    let cli_path = find_cli_binary().ok_or("Cannot find twistedflow-cli binary. Build it with: cargo build -p twistedflow-cli")?;
+
+    let _ = app.emit("build:progress", serde_json::json!({
+        "stage": "compiling",
+        "message": format!("Compiling flow '{}' (this may take a moment)...", flow_name),
+    }));
+
+    // Run the CLI build command as a subprocess
+    let output = tokio::process::Command::new(&cli_path)
+        .arg("build")
+        .arg(&project_path)
+        .arg("-o")
+        .arg(&output_path)
+        .arg("--flow")
+        .arg(&flow_name)
+        .arg("--env")
+        .arg(&env_name)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Failed to start build: {}", e))?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if output.status.success() {
+        // Get file size
+        let size = std::fs::metadata(&output_path)
+            .map(|m| m.len())
+            .unwrap_or(0);
+        let size_str = if size >= 1_048_576 {
+            format!("{:.1}MB", size as f64 / 1_048_576.0)
+        } else {
+            format!("{:.0}KB", size as f64 / 1024.0)
+        };
+
+        let _ = app.emit("build:progress", serde_json::json!({
+            "stage": "done",
+            "message": format!("Built successfully: {} ({})", output_path, size_str),
+        }));
+
+        Ok(format!("{} ({})", output_path, size_str))
+    } else {
+        let _ = app.emit("build:progress", serde_json::json!({
+            "stage": "error",
+            "message": format!("Build failed: {}", stderr.trim()),
+        }));
+
+        Err(format!("Build failed:\n{}", stderr.trim()))
+    }
+}
+
+/// Find the twistedflow-cli binary relative to the current executable.
+fn find_cli_binary() -> Option<String> {
+    let current_exe = std::env::current_exe().ok()?;
+    let dir = current_exe.parent()?;
+
+    // Check same directory (debug/release builds)
+    let cli = dir.join("twistedflow-cli");
+    if cli.exists() {
+        return Some(cli.to_string_lossy().to_string());
+    }
+
+    // Check ../target/debug
+    let debug = dir.join("../target/debug/twistedflow-cli");
+    if debug.exists() {
+        return Some(debug.to_string_lossy().to_string());
+    }
+
+    None
+}
