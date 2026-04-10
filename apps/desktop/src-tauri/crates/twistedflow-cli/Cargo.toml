@@ -5,7 +5,7 @@ edition = "2021"
 description = "TwistedFlow CLI — run flows headlessly from the command line"
 
 [[bin]]
-name = "twistedflow"
+name = "twistedflow-cli"
 path = "src/main.rs"
 
 [dependencies]
