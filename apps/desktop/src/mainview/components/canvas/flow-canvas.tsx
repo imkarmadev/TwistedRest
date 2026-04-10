@@ -1032,6 +1032,8 @@ const KNOWN_TYPES = new Set([
   "getVariable",
   "emitEvent",
   "onEvent",
+  "ifElse",
+  "tryCatch",
   "print",
   "shellExec",
   "fileRead",

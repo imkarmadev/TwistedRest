@@ -33,6 +33,8 @@ import { FunctionNode } from "../components/canvas/nodes/function-node";
 import { SetVariableNode } from "../components/canvas/nodes/set-variable-node";
 import { GetVariableNode } from "../components/canvas/nodes/get-variable-node";
 import { MatchNode } from "../components/canvas/nodes/match-node";
+import { IfElseNode } from "../components/canvas/nodes/if-else-node";
+import { TryCatchNode } from "../components/canvas/nodes/try-catch-node";
 import { SystemNode } from "../components/canvas/nodes/system-node";
 
 export type NodeCategory =
@@ -335,6 +337,34 @@ export const NODE_REGISTRY: NodeTypeDef[] = [
     hasDataIn: false,
     hasDataOut: true,
     defaultData: () => ({ name: "myEvent" }),
+  },
+  {
+    type: "ifElse",
+    label: "If / Else",
+    category: "Flow Control",
+    description: "Branch on a boolean condition. Truthy goes right-true, falsy goes right-false.",
+    component: IfElseNode,
+    hasExecIn: true,
+    hasExecOut: false,
+    hasDataIn: true,
+    hasDataOut: false,
+    defaultExecInPin: "exec-in",
+    defaultDataInPin: "in:condition",
+    acceptsDataInput: () => true,
+    defaultData: () => ({}),
+  },
+  {
+    type: "tryCatch",
+    label: "Try / Catch",
+    category: "Flow Control",
+    description: "Run a chain. If any node errors, catch it and run the catch branch instead.",
+    component: TryCatchNode,
+    hasExecIn: true,
+    hasExecOut: true,
+    hasDataIn: false,
+    hasDataOut: true,
+    defaultExecInPin: "exec-in",
+    defaultData: () => ({}),
   },
   // ── System nodes ────────────────────────────────────────────────
   {

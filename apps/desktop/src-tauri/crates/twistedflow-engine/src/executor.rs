@@ -188,11 +188,11 @@ pub fn run_chain(
                 }
                 NodeResult::Error { message, raw_response } => {
                     if let Some(raw) = raw_response {
-                        (opts.on_status)(node_id, StatusEvent::schema_error(message, raw));
+                        (opts.on_status)(node_id, StatusEvent::schema_error(&message, raw));
                     } else {
-                        (opts.on_status)(node_id, StatusEvent::error(message));
+                        (opts.on_status)(node_id, StatusEvent::error(&message));
                     }
-                    return Ok(()); // halt chain
+                    return Err(message); // halt chain, propagate error for Try/Catch
                 }
                 NodeResult::Data(_) => {
                     // Pure data node — skip in exec chain
