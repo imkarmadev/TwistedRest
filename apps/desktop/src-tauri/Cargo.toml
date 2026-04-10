@@ -19,7 +19,7 @@ log = "0.4"
 
 [package]
 name = "twistedflow"
-version = "0.4.0"
+version = "1.0.0"
 description = "TwistedFlow — visual flow engine"
 authors = ["you"]
 edition = "2021"
