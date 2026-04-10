@@ -1032,6 +1032,8 @@ const KNOWN_TYPES = new Set([
   "getVariable",
   "emitEvent",
   "onEvent",
+  "assert",
+  "assertType",
   "ifElse",
   "tryCatch",
   "httpListen",

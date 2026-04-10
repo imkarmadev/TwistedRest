@@ -101,6 +101,25 @@ const NODE_CONFIGS: Record<string, (data: Record<string, unknown>) => SystemNode
     ],
     outputs: [],
   }),
+  assert: (data) => ({
+    badge: "TEST",
+    label: "Assert",
+    subtitle: (data.label as string) || "equals",
+    inputs: [
+      { id: "in:actual", label: "actual", type: "unknown" },
+      { id: "in:expected", label: "expected", type: "unknown" },
+    ],
+    outputs: [],
+  }),
+  assertType: (data) => ({
+    badge: "TEST",
+    label: "Assert Type",
+    subtitle: `is ${(data.expectedType as string) || "string"}`,
+    inputs: [
+      { id: "in:value", label: "value", type: "unknown" },
+    ],
+    outputs: [],
+  }),
   routeMatch: (data) => ({
     badge: "HTTP",
     label: "Route Match",

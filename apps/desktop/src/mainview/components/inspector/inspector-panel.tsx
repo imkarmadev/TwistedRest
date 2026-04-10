@@ -136,6 +136,24 @@ export function InspectorPanel({
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
           />
+        ) : node.type === "assert" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "label", label: "Label", placeholder: "should equal 200" },
+              { key: "expected", label: "Expected Value (if no input wired)", placeholder: "200" },
+            ]}
+          />
+        ) : node.type === "assertType" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "label", label: "Label", placeholder: "should be string" },
+              { key: "expectedType", label: "Expected Type", placeholder: "string" },
+            ]}
+          />
         ) : node.type === "httpListen" ? (
           <SystemFieldEditor
             data={(node.data ?? {}) as Record<string, unknown>}

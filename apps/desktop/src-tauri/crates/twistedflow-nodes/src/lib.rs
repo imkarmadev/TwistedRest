@@ -8,6 +8,8 @@
 pub use twistedflow_engine::*;
 
 // ── Exec nodes ──────────────────────────────────────────────────────────────
+pub mod assert_node;
+pub mod assert_type_node;
 pub mod emit_event;
 pub mod exit_node;
 pub mod file_read_node;
@@ -36,6 +38,8 @@ pub mod make_object;
 pub mod tap;
 
 // Convenient re-exports
+pub use assert_node::AssertNode;
+pub use assert_type_node::AssertTypeNode;
 pub use break_object::BreakObjectNode;
 pub use convert::ConvertNode;
 pub use emit_event::EmitEventNode;
