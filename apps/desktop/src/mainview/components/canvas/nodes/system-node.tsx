@@ -77,19 +77,14 @@ const NODE_CONFIGS: Record<string, (data: Record<string, unknown>) => SystemNode
     outputs: [],
   }),
   httpListen: (data) => ({
-    badge: "HTTP",
+    badge: "PROC",
     label: "HTTP Listen",
-    subtitle: `:${data.port ?? 3000}`,
+    subtitle: `:${data.port ?? 3000} → ${(data.eventName as string) || "http:request"}`,
     inputs: [],
-    outputs: [
-      { id: "out:method", label: "method", type: "string" },
-      { id: "out:path", label: "path", type: "string" },
-      { id: "out:query", label: "query", type: "string" },
-      { id: "out:headers", label: "headers", type: "object" },
-      { id: "out:body", label: "body", type: "unknown" },
-    ],
-    execOutLabel: "request",
-    execOutHandle: "exec-request",
+    outputs: [],
+    // Process node: has exec-in to start, but no exec-out (stays running)
+    execOutHandle: "__none__",
+    execOutLabel: "",
   }),
   sendResponse: () => ({
     badge: "HTTP",
@@ -169,10 +164,14 @@ export function SystemNode({ id, data, selected, type }: NodeProps) {
             <Handle id="exec-in" type="target" position={Position.Left} className={`${s.pin} ${s.pinExec}`} />
             <span className={s.pinName}>exec</span>
           </div>
-          <div className={s.pinLabelRight}>
-            <span className={s.pinName}>{config.execOutLabel ?? "exec"}</span>
-            <Handle id={config.execOutHandle ?? "exec-out"} type="source" position={Position.Right} className={`${s.pin} ${s.pinExec}`} />
-          </div>
+          {config.execOutHandle !== "__none__" ? (
+            <div className={s.pinLabelRight}>
+              <span className={s.pinName}>{config.execOutLabel ?? "exec"}</span>
+              <Handle id={config.execOutHandle ?? "exec-out"} type="source" position={Position.Right} className={`${s.pin} ${s.pinExec}`} />
+            </div>
+          ) : (
+            <span className={s.pinSpacer} />
+          )}
         </div>
       )}
 
