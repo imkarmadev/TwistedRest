@@ -79,12 +79,17 @@ const NODE_CONFIGS: Record<string, (data: Record<string, unknown>) => SystemNode
   httpListen: (data) => ({
     badge: "PROC",
     label: "HTTP Listen",
-    subtitle: `:${data.port ?? 3000} → ${(data.eventName as string) || "http:request"}`,
+    subtitle: `:${data.port ?? 3000}`,
     inputs: [],
-    outputs: [],
-    // Process node: has exec-in to start, but no exec-out (stays running)
-    execOutHandle: "__none__",
-    execOutLabel: "",
+    outputs: [
+      { id: "out:method", label: "method", type: "string" },
+      { id: "out:path", label: "path", type: "string" },
+      { id: "out:query", label: "query", type: "string" },
+      { id: "out:headers", label: "headers", type: "object" },
+      { id: "out:body", label: "body", type: "unknown" },
+    ],
+    execOutHandle: "exec-request",
+    execOutLabel: "request",
   }),
   sendResponse: () => ({
     badge: "HTTP",
