@@ -27,7 +27,7 @@ interface ConsolePanelProps {
 export function ConsolePanel({ insetRight }: ConsolePanelProps) {
   const { entries, isOpen, toggle, clear, close, open } = useConsole();
 
-  // Backtick (`) toggles the console from anywhere — UE-style. Don't
+  // Backtick (`) toggles the console from anywhere. Don't
   // intercept when typing in inputs/textareas.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

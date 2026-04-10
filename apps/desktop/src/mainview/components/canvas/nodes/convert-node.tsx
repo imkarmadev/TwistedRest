@@ -1,7 +1,6 @@
 /**
  * Convert node — type coercion between pins.
  *
- * UE Blueprints analogue: the "ToString" / "ToInt" / etc. cast nodes.
  * Single input, single output, configurable target type via the inspector.
  *
  * Common use case: an HTTP node returns `id: number`, but the next HTTP

@@ -1,8 +1,7 @@
 /**
  * Start node — entry point of a flow.
  *
- * Blueprint analogue: Event BeginPlay. Has no input pins. One white exec
- * output pin. Renders:
+ * Has no input pins. One white exec output pin. Renders:
  *   - An environment dropdown (selects which env vars seed the run)
  *   - A Run button that triggers the executor via FlowExecContext
  */

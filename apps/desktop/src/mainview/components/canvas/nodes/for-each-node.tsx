@@ -1,7 +1,6 @@
 /**
- * ForEach node — iterates over an array, executing a body sub-chain
- * once per item. UE Blueprints "ForEach Loop" / "ForEach Loop with Break"
- * analogue.
+ * ForEach node — iterates an array, executing a body sub-chain
+ * once per item.
  *
  * Two variants share this component, distinguished by the `mode` prop:
  *

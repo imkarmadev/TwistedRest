@@ -1,5 +1,5 @@
 /**
- * Searchable node palette — UE-style "right-click → search → enter".
+ * Searchable node palette — right-click → search → enter.
  *
  * Floats at a viewport position (the click point), search input on top,
  * categorized list of node defs underneath. Keyboard nav ↑↓, Enter spawns,

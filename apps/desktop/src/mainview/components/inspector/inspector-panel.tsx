@@ -136,6 +136,39 @@ export function InspectorPanel({
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
           />
+        ) : node.type === "shellExec" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "command", label: "Command", placeholder: "echo #{name}" },
+              { key: "failOnError", label: "Fail on non-zero exit", type: "boolean" },
+            ]}
+          />
+        ) : node.type === "fileRead" || node.type === "fileWrite" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "path", label: "File Path", placeholder: "/tmp/output.json" },
+            ]}
+          />
+        ) : node.type === "sleep" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "ms", label: "Duration (ms)", placeholder: "1000", type: "number" },
+            ]}
+          />
+        ) : node.type === "exit" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "message", label: "Message (optional)", placeholder: "Health check failed" },
+            ]}
+          />
         ) : node.type === "start" ? (
           <div className={s.hint}>
             Start node — entry point. The Environment dropdown lives on the
@@ -1075,6 +1108,59 @@ function EnvVarEditor({ data, onChange, environments }: EnvVarEditorProps) {
           is selected on the Start node at run time.
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── System field editor (generic for system nodes) ─────────────
+
+interface SystemField {
+  key: string;
+  label: string;
+  placeholder?: string;
+  type?: "string" | "number" | "boolean";
+}
+
+interface SystemFieldEditorProps {
+  data: Record<string, unknown>;
+  onChange: (data: Record<string, unknown>) => void;
+  fields: SystemField[];
+}
+
+function SystemFieldEditor({ data, onChange, fields }: SystemFieldEditorProps) {
+  return (
+    <div className={s.form}>
+      {fields.map((f) => (
+        <div className={s.field} key={f.key}>
+          <label className={s.label}>{f.label}</label>
+          {f.type === "boolean" ? (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={!!data[f.key]}
+                onChange={(e) => onChange({ ...data, [f.key]: e.target.checked })}
+              />
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                {data[f.key] ? "Yes" : "No"}
+              </span>
+            </label>
+          ) : (
+            <input
+              className={s.input}
+              type={f.type === "number" ? "number" : "text"}
+              value={String(data[f.key] ?? "")}
+              onChange={(e) =>
+                onChange({
+                  ...data,
+                  [f.key]: f.type === "number" ? Number(e.target.value) || 0 : e.target.value,
+                })
+              }
+              placeholder={f.placeholder}
+              spellCheck={false}
+            />
+          )}
+        </div>
+      ))}
     </div>
   );
 }

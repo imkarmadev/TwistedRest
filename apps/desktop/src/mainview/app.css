@@ -1,7 +1,7 @@
 /*
  * TwistedFlow global styles & design tokens.
  *
- * Dark Blueprint-inspired theme. CSS variables on :root so they're
+ * Dark theme. CSS variables on :root so they're
  * available everywhere — in CSS Modules and inline styles.
  */
 
@@ -59,13 +59,13 @@
   --text-secondary: #8e8e93;
   --text-muted: #636366;
 
-  /* ── Accent (cyan, Blueprint vibe) ───────────────────── */
+  /* ── Accent (cyan) ───────────────────────────────────── */
   --accent: #4cc2ff;
   --accent-hover: #6bd0ff;
   --accent-bg: rgba(76, 194, 255, 0.15);
   --accent-border: rgba(76, 194, 255, 0.3);
 
-  /* ── Pin / edge type colors (Blueprint palette) ──────── */
+  /* ── Pin / edge type colors ──────────────────────────── */
   --pin-exec: #ffffff;
   --pin-string: #ff5fb1;   /* hot pink */
   --pin-number: #7fff7f;   /* green */

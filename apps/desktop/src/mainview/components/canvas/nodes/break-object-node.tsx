@@ -1,5 +1,5 @@
 /**
- * Break-Object node — UE Blueprint "Break Struct" analogue.
+ * Break-Object node — Destructures an object into individual field pins.
  *
  * Takes one object input and re-emits each top-level field as a separate
  * output pin. Lets you drill into nested API responses without flattening.

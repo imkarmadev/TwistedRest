@@ -1,6 +1,6 @@
 # TwistedFlow
 
-A visual API workflow builder inspired by Unreal Engine Blueprints. Build, chain, and debug HTTP request flows by wiring nodes on a canvas — no code required for most workflows, with a Function node escape hatch when you need custom logic.
+A visual API workflow builder. Visual node-based flow programming. Build, chain, and debug HTTP request flows by wiring nodes on a canvas — no code required for most workflows, with a Function node escape hatch when you need custom logic.
 
 **macOS desktop app** built with Tauri 2 + React 19 + React Flow + Rust + SQLite.
 
@@ -27,7 +27,7 @@ A visual API workflow builder inspired by Unreal Engine Blueprints. Build, chain
 | **Tap** | Data | Pass-through debug probe. Shows every value that flows through it. Accumulates across parallel iterations. |
 | **Log** | Data | Exec-chain print sink. Writes values to the bottom Console panel with timestamps. |
 
-### Two Edge Types (Blueprint-style)
+### Two Edge Types (Visual)
 
 - **Exec edges** (white diamonds) — control flow. Determines run order.
 - **Data edges** (colored circles) — typed values. Pin colors: string (pink), number (green), boolean (red), object (blue), array (purple).

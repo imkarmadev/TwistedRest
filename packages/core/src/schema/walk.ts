@@ -6,7 +6,7 @@ import type { DataType, PinDescriptor } from "../pins.js";
  *
  * Object pins surface as a single `object` pin with `inner` set to the
  * nested schema, so the canvas can render the "object" icon and the user
- * can drop a Break-Object node to expand sub-fields (UE Blueprint style).
+ * can drop a Break-Object node to expand sub-fields.
  *
  * Arrays surface as `array` pins with `inner` set to the element schema —
  * iterator nodes (ForEach) consume these.

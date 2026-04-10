@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Two distinct edge kinds, just like Unreal Blueprints:
+ * Two distinct edge kinds:
  *
  * - `exec` edges carry control flow. Drawn white/thick. Always connect
  *   an exec output pin → an exec input pin. Determines run order.

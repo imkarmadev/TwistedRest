@@ -2,8 +2,6 @@
  * On Event node — listens for a named event, fires its exec-out branch
  * when any matching Emit Event runs.
  *
- * UE Blueprint analogue: a "Custom Event" entry point.
- *
  *                   On Event "userLoaded" ──► exec-out
  *                                              id (number)
  *                                              name (string)

@@ -9,11 +9,17 @@ pub use twistedflow_engine::*;
 
 // ── Exec nodes ──────────────────────────────────────────────────────────────
 pub mod emit_event;
+pub mod exit_node;
+pub mod file_read_node;
+pub mod file_write_node;
 pub mod for_each;
 pub mod http_request;
 pub mod log_node;
 pub mod match_node;
+pub mod print_node;
 pub mod set_variable;
+pub mod shell_exec_node;
+pub mod sleep_node;
 pub mod start;
 
 // ── Pure-data nodes ─────────────────────────────────────────────────────────
@@ -29,12 +35,18 @@ pub use break_object::BreakObjectNode;
 pub use convert::ConvertNode;
 pub use emit_event::EmitEventNode;
 pub use env_var::EnvVarNode;
+pub use exit_node::ExitNode;
+pub use file_read_node::FileReadNode;
+pub use file_write_node::FileWriteNode;
 pub use for_each::{ForEachParNode, ForEachSeqNode};
 pub use get_variable::GetVariableNode;
 pub use http_request::HttpRequestNode;
 pub use log_node::LogNode;
 pub use make_object::MakeObjectNode;
 pub use match_node::MatchNode;
+pub use print_node::PrintNode;
 pub use set_variable::SetVariableNode;
+pub use shell_exec_node::ShellExecNode;
+pub use sleep_node::SleepNode;
 pub use start::StartNode;
 pub use tap::TapNode;

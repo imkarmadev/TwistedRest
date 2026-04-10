@@ -1,8 +1,6 @@
 /**
  * Emit Event node — broadcasts a named event with a typed payload.
  *
- * UE Blueprint analogue: "Call Custom Event" / dispatcher firing.
- *
  * Wiring model:
  *   exec-in   ──► Emit Event "userLoaded"  ──► exec-out
  *                  ▲ id (number)

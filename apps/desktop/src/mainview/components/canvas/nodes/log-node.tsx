@@ -4,8 +4,7 @@
  *   exec-in ──► [ LOG "label" ] ──► exec-out
  *               value (any)
  *
- * UE Blueprint analogue: Print String. Wire it inline anywhere in an
- * exec chain. When control flow reaches it, the executor reads the
+ * Wire it inline anywhere in an exec chain. When control flow reaches it, the executor reads the
  * `value` input pin and emits an entry to the console (label + JSON
  * value + timestamp). Then continues to exec-out.
  *

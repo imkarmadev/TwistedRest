@@ -2,8 +2,8 @@
  * Pin descriptors used by the canvas to render sockets and by the executor
  * to wire data between nodes.
  *
- * `kind: "exec"` pins are control-flow sockets (Blueprint white edges).
- * `kind: "data"` pins carry typed values (Blueprint colored edges).
+ * `kind: "exec"` pins are control-flow sockets (white diamond edges).
+ * `kind: "data"` pins carry typed values (colored circle edges).
  */
 
 export type DataType =

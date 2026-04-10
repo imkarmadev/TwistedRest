@@ -5,8 +5,7 @@
  *   name  (string) ──┼─[ MAKE Object ]── object ──►
  *   email (string) ──┘
  *
- * UE Blueprint analogue: Make Struct. Configure named typed fields in
- * the inspector — each becomes an input pin on the left. The output
+ * Configure named typed fields in the inspector — each becomes an input pin on the left. The output
  * pin emits a single object containing whatever values you wired in.
  *
  * Common uses:

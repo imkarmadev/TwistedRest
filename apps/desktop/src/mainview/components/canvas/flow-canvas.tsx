@@ -1032,6 +1032,12 @@ const KNOWN_TYPES = new Set([
   "getVariable",
   "emitEvent",
   "onEvent",
+  "print",
+  "shellExec",
+  "fileRead",
+  "fileWrite",
+  "sleep",
+  "exit",
   "customNode",
   "pluginNode",
 ]);

@@ -6,7 +6,7 @@ All notable changes to TwistedFlow are documented here.
 
 ### Added
 - **14 node types**: Start, HTTP Request, Match, ForEach (Sequential), ForEach (Parallel), Emit Event, On Event, Env Var, Break Object, Make Object, Convert, Function, Tap, Log
-- **Blueprint-style canvas** with exec edges (white diamonds) and data edges (colored circles)
+- **Visual node canvas** with exec edges (white diamonds) and data edges (colored circles)
 - **Searchable node palette** — right-click, Space, or drag a pin to empty canvas with type-aware filtering
 - **Environments** with per-env base URL, headers, variables, and auth
 - **Authentication** — Bearer, Basic, API Key (header/query), OAuth2 Client Credentials, OAuth2 Authorization Code (browser login flow)

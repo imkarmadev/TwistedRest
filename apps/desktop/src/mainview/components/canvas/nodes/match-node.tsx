@@ -11,8 +11,6 @@
  * equality), and fires the matching case's exec output. If no case
  * matches, fires the "default" output.
  *
- * UE Blueprint analogue: Switch on String / Switch on Enum.
- *
  * After the matched branch completes, the Match node is DONE — there's
  * no "continue after switch" exec-out. If you want convergence, wire
  * each case's chain end to the same downstream node.
