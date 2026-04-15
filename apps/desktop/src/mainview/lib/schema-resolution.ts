@@ -141,6 +141,49 @@ export function resolveSourcePinSchema(
     return null;
   }
 
+  // ── HTTP Server nodes: return fixed schemas for known output pins ──
+  if (sourceNode.type === "route") {
+    if (pinId === "params" || pinId === "query") return z.object({}).passthrough();
+    return null;
+  }
+  if (sourceNode.type === "parseBody") {
+    if (pinId === "contentType") return z.string();
+    return null; // parsed is unknown
+  }
+  if (sourceNode.type === "cors") {
+    if (pinId === "corsHeaders") return z.object({}).passthrough();
+    return null;
+  }
+  if (sourceNode.type === "verifyAuth") {
+    if (pinId === "claims") return z.object({}).passthrough();
+    if (pinId === "token") return z.string();
+    if (pinId === "error") return z.string();
+    return null;
+  }
+  if (sourceNode.type === "rateLimit") {
+    if (pinId === "remaining") return z.number();
+    if (pinId === "rateLimitHeaders") return z.object({}).passthrough();
+    return null;
+  }
+  if (sourceNode.type === "cookie") {
+    if (pinId === "cookies" || pinId === "setCookieHeaders") return z.object({}).passthrough();
+    return null;
+  }
+  if (sourceNode.type === "setHeaders") {
+    if (pinId === "headers") return z.object({}).passthrough();
+    return null;
+  }
+  if (sourceNode.type === "serveStatic") {
+    if (pinId === "filePath" || pinId === "contentType") return z.string();
+    if (pinId === "found") return z.boolean();
+    return null;
+  }
+  if (sourceNode.type === "httpListen") {
+    if (pinId === "method" || pinId === "path" || pinId === "query") return z.string();
+    if (pinId === "headers") return z.object({}).passthrough();
+    return null;
+  }
+
   if (sourceNode.type === "onEvent") {
     // Look up the payload field on the matching Emit Event(s) and return
     // its declared type as a Zod primitive.
@@ -225,6 +268,39 @@ export function getSourcePinType(
   }
 
   if (sourceNode.type === "makeObject") return "object";
+
+  // HTTP Server node fast paths
+  if (sourceNode.type === "route") {
+    if (pinId === "params" || pinId === "query") return "object";
+    return "unknown";
+  }
+  if (sourceNode.type === "parseBody") {
+    if (pinId === "contentType") return "string";
+    return "unknown";
+  }
+  if (sourceNode.type === "cors") return "object";
+  if (sourceNode.type === "verifyAuth") {
+    if (pinId === "claims") return "object";
+    if (pinId === "token" || pinId === "error") return "string";
+    return "unknown";
+  }
+  if (sourceNode.type === "rateLimit") {
+    if (pinId === "remaining") return "number";
+    if (pinId === "rateLimitHeaders") return "object";
+    return "unknown";
+  }
+  if (sourceNode.type === "cookie") return "object";
+  if (sourceNode.type === "setHeaders") return "object";
+  if (sourceNode.type === "serveStatic") {
+    if (pinId === "filePath" || pinId === "contentType") return "string";
+    if (pinId === "found") return "boolean";
+    return "unknown";
+  }
+  if (sourceNode.type === "httpListen") {
+    if (pinId === "method" || pinId === "path" || pinId === "query") return "string";
+    if (pinId === "headers") return "object";
+    return "unknown";
+  }
 
   if (sourceNode.type === "function") {
     // Look up the declared output type for this pin

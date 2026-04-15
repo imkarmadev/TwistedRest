@@ -272,6 +272,91 @@ export function InspectorPanel({
               { key: "message", label: "Message (optional)", placeholder: "Health check failed" },
             ]}
           />
+        ) : node.type === "regex" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "pattern", label: "Pattern", placeholder: "\\d+" },
+              { key: "mode", label: "Mode (match/extract/replace/split)", placeholder: "match" },
+              { key: "replacement", label: "Replacement (replace mode)", placeholder: "$1" },
+              { key: "caseInsensitive", label: "Case Insensitive", type: "boolean" },
+              { key: "global", label: "Global (all matches)", type: "boolean" },
+            ]}
+          />
+        ) : node.type === "template" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "template", label: "Template", placeholder: "Hello #{name}, you are #{age}!" },
+            ]}
+          />
+        ) : node.type === "encodeDecode" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "encoding", label: "Encoding (base64/hex/url)", placeholder: "base64" },
+              { key: "direction", label: "Direction (encode/decode)", placeholder: "encode" },
+            ]}
+          />
+        ) : node.type === "filter" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "expression", label: "Expression", placeholder: "item.status == 200" },
+            ]}
+          />
+        ) : node.type === "map" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "mode", label: "Mode (pluck/pick/template)", placeholder: "pluck" },
+              { key: "field", label: "Field (pluck mode)", placeholder: "name" },
+              { key: "template", label: "Template (template mode)", placeholder: "#{name}: #{value}" },
+            ]}
+          />
+        ) : node.type === "reduce" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "operation", label: "Operation (sum/count/join/min/max/flatten/unique/groupBy)", placeholder: "sum" },
+              { key: "field", label: "Field (for groupBy)", placeholder: "id" },
+              { key: "separator", label: "Separator (for join)", placeholder: ", " },
+            ]}
+          />
+        ) : node.type === "retry" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "maxRetries", label: "Max Retries", placeholder: "3", type: "number" },
+              { key: "delayMs", label: "Initial Delay (ms)", placeholder: "1000", type: "number" },
+              { key: "backoffMultiplier", label: "Backoff Multiplier", placeholder: "2.0", type: "number" },
+            ]}
+          />
+        ) : node.type === "prompt" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "message", label: "Prompt Message", placeholder: "Enter value:" },
+              { key: "mode", label: "Mode (text/confirm/password)", placeholder: "text" },
+              { key: "default", label: "Default Value", placeholder: "" },
+            ]}
+          />
+        ) : node.type === "merge" ? (
+          <SystemFieldEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+            fields={[
+              { key: "mode", label: "Mode (auto/deep/shallow/concat)", placeholder: "auto" },
+            ]}
+          />
         ) : node.type === "start" ? (
           <div className={s.hint}>
             Start node — entry point. The Environment dropdown lives on the

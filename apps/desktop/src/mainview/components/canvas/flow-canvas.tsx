@@ -77,6 +77,19 @@ import {
   computeMergePins,
   computeReducePins,
   computeRetryPins,
+  computePrintPins,
+  computeShellExecPins,
+  computeFileReadPins,
+  computeFileWritePins,
+  computeSleepPins,
+  computeExitPins,
+  computeAssertPins,
+  computeAssertTypePins,
+  computeHttpListenPins,
+  computeSendResponsePins,
+  computeRouteMatchPins,
+  computeIfElsePins,
+  computeTryCatchPins,
   computeRoutePins,
   computeParseBodyPins,
   computeSetHeadersPins,
@@ -1134,7 +1147,24 @@ function collectPinIds(node: Node): Set<string> {
   else if (node.type === "reduce") pins = computeReducePins();
   // Flow control
   else if (node.type === "retry") pins = computeRetryPins();
-  // HTTP Server nodes
+  // System nodes
+  else if (node.type === "print") pins = computePrintPins();
+  else if (node.type === "shellExec") pins = computeShellExecPins();
+  else if (node.type === "fileRead") pins = computeFileReadPins();
+  else if (node.type === "fileWrite") pins = computeFileWritePins();
+  else if (node.type === "sleep") pins = computeSleepPins();
+  else if (node.type === "exit") pins = computeExitPins();
+  // Testing nodes
+  else if (node.type === "assert") pins = computeAssertPins();
+  else if (node.type === "assertType") pins = computeAssertTypePins();
+  // HTTP Server nodes (pre-existing)
+  else if (node.type === "httpListen") pins = computeHttpListenPins();
+  else if (node.type === "sendResponse") pins = computeSendResponsePins();
+  else if (node.type === "routeMatch") pins = computeRouteMatchPins();
+  // Flow control (pre-existing)
+  else if (node.type === "ifElse") pins = computeIfElsePins();
+  else if (node.type === "tryCatch") pins = computeTryCatchPins();
+  // HTTP Server nodes (new)
   else if (node.type === "route")
     pins = computeRoutePins(
       (node.data as { routes?: Array<{ method: string; path: string; label?: string }> } | undefined)?.routes,

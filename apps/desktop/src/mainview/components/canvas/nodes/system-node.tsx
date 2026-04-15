@@ -8,7 +8,7 @@ import clsx from "clsx";
 import s from "./node.module.css";
 import { pinClass } from "../../../lib/pin-classes";
 import { useFlowExec } from "../../../lib/exec-context";
-import type { DataType } from "@twistedflow/core";
+import { inputPinsFor, type DataType } from "@twistedflow/core";
 
 interface SystemNodeConfig {
   badge: string;
@@ -252,14 +252,21 @@ const NODE_CONFIGS: Record<string, (data: Record<string, unknown>) => SystemNode
     })(),
     noExec: true,
   }),
-  template: (data) => ({
-    badge: "STR",
-    label: "Template",
-    subtitle: (data.template as string)?.slice(0, 25) || "#{var}",
-    inputs: [{ id: "in:value", label: "value", type: "unknown" }],
-    outputs: [{ id: "out:result", label: "result", type: "string" }],
-    noExec: true,
-  }),
+  template: (data) => {
+    const tmpl = (data.template as string) || "";
+    const tokens = inputPinsFor(tmpl);
+    const inputs = tokens.length > 0
+      ? tokens.map((name) => ({ id: `in:${name}`, label: name, type: "unknown" as DataType }))
+      : [{ id: "in:value", label: "value", type: "unknown" as DataType }];
+    return {
+      badge: "STR",
+      label: "Template",
+      subtitle: tmpl.slice(0, 25) || "#{var}",
+      inputs,
+      outputs: [{ id: "out:result", label: "result", type: "string" as DataType }],
+      noExec: true,
+    };
+  },
   encodeDecode: (data) => ({
     badge: "STR",
     label: "Encode/Decode",

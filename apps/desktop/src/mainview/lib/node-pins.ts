@@ -559,6 +559,150 @@ export function computeServeStaticPins(): ComputedPins {
   };
 }
 
+// ── System node pins (generic exec nodes) ─────────────────────────────
+
+export function computePrintPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN, { id: "in:value", side: "left", label: "value", kind: "data", dataType: "unknown" }],
+    outputs: [EXEC_OUT],
+  };
+}
+
+export function computeShellExecPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN, { id: "in:stdin", side: "left", label: "stdin", kind: "data", dataType: "string" }],
+    outputs: [
+      EXEC_OUT,
+      { id: "out:stdout", side: "right", label: "stdout", kind: "data", dataType: "string" },
+      { id: "out:stderr", side: "right", label: "stderr", kind: "data", dataType: "string" },
+      { id: "out:exitCode", side: "right", label: "exitCode", kind: "data", dataType: "number" },
+    ],
+  };
+}
+
+export function computeFileReadPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN],
+    outputs: [
+      EXEC_OUT,
+      { id: "out:content", side: "right", label: "content", kind: "data", dataType: "string" },
+      { id: "out:path", side: "right", label: "path", kind: "data", dataType: "string" },
+    ],
+  };
+}
+
+export function computeFileWritePins(): ComputedPins {
+  return {
+    inputs: [
+      EXEC_IN,
+      { id: "in:content", side: "left", label: "content", kind: "data", dataType: "unknown" },
+    ],
+    outputs: [
+      EXEC_OUT,
+      { id: "out:path", side: "right", label: "path", kind: "data", dataType: "string" },
+      { id: "out:bytes", side: "right", label: "bytes", kind: "data", dataType: "number" },
+    ],
+  };
+}
+
+export function computeSleepPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN, { id: "in:ms", side: "left", label: "ms", kind: "data", dataType: "number" }],
+    outputs: [EXEC_OUT],
+  };
+}
+
+export function computeExitPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN, { id: "in:code", side: "left", label: "code", kind: "data", dataType: "number" }],
+    outputs: [],
+  };
+}
+
+export function computeAssertPins(): ComputedPins {
+  return {
+    inputs: [
+      EXEC_IN,
+      { id: "in:actual", side: "left", label: "actual", kind: "data", dataType: "unknown" },
+      { id: "in:expected", side: "left", label: "expected", kind: "data", dataType: "unknown" },
+    ],
+    outputs: [EXEC_OUT],
+  };
+}
+
+export function computeAssertTypePins(): ComputedPins {
+  return {
+    inputs: [
+      EXEC_IN,
+      { id: "in:value", side: "left", label: "value", kind: "data", dataType: "unknown" },
+    ],
+    outputs: [EXEC_OUT],
+  };
+}
+
+export function computeHttpListenPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN],
+    outputs: [
+      { id: "exec-request", side: "right", label: "request", kind: "exec" },
+      { id: "out:method", side: "right", label: "method", kind: "data", dataType: "string" },
+      { id: "out:path", side: "right", label: "path", kind: "data", dataType: "string" },
+      { id: "out:query", side: "right", label: "query", kind: "data", dataType: "string" },
+      { id: "out:headers", side: "right", label: "headers", kind: "data", dataType: "object" },
+      { id: "out:body", side: "right", label: "body", kind: "data", dataType: "unknown" },
+    ],
+  };
+}
+
+export function computeSendResponsePins(): ComputedPins {
+  return {
+    inputs: [
+      EXEC_IN,
+      { id: "in:status", side: "left", label: "status", kind: "data", dataType: "number" },
+      { id: "in:body", side: "left", label: "body", kind: "data", dataType: "unknown" },
+      { id: "in:headers", side: "left", label: "headers", kind: "data", dataType: "object" },
+    ],
+    outputs: [EXEC_OUT],
+  };
+}
+
+export function computeRouteMatchPins(): ComputedPins {
+  return {
+    inputs: [
+      { id: "in:method", side: "left", label: "method", kind: "data", dataType: "string" },
+      { id: "in:path", side: "left", label: "path", kind: "data", dataType: "string" },
+    ],
+    outputs: [
+      { id: "out:matched", side: "right", label: "matched", kind: "data", dataType: "boolean" },
+    ],
+  };
+}
+
+export function computeIfElsePins(): ComputedPins {
+  return {
+    inputs: [
+      EXEC_IN,
+      { id: "in:condition", side: "left", label: "condition", kind: "data", dataType: "unknown" },
+    ],
+    outputs: [
+      { id: "exec-true", side: "right", label: "true", kind: "exec" },
+      { id: "exec-false", side: "right", label: "false", kind: "exec" },
+    ],
+  };
+}
+
+export function computeTryCatchPins(): ComputedPins {
+  return {
+    inputs: [EXEC_IN],
+    outputs: [
+      { id: "exec-try", side: "right", label: "try", kind: "exec" },
+      { id: "exec-catch", side: "right", label: "catch", kind: "exec" },
+      EXEC_OUT,
+      { id: "out:error", side: "right", label: "error", kind: "data", dataType: "string" },
+    ],
+  };
+}
+
 // ── CLI node pins ─────────────────────────────────────────────────────
 
 export function computeParseArgsPins(): ComputedPins {

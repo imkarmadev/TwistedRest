@@ -123,17 +123,24 @@ pub async fn run_flow(
         processes: std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new())),
     });
 
-    // Run the engine
-    let result = twistedflow_engine::run_flow(opts).await;
+    // Run the engine in a spawned task so panics are caught by tokio
+    let handle = tokio::spawn(async move {
+        twistedflow_engine::run_flow(opts).await
+    });
+    let result = handle.await;
 
-    // Clean up: remove token and notify frontend
+    // Always clean up: remove token and notify frontend (even on panic)
     {
         let mut guard = executor_state.tokens.lock().unwrap();
         guard.remove(&flow_id);
     }
     let _ = app.emit("flow:finished", serde_json::json!({ "flowId": &flow_id }));
 
-    result
+    match result {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(e),
+        Err(e) => Err(format!("Flow execution panicked: {}", e)),
+    }
 }
 
 #[tauri::command]
