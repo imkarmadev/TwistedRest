@@ -77,6 +77,15 @@ import {
   computeMergePins,
   computeReducePins,
   computeRetryPins,
+  computeRoutePins,
+  computeParseBodyPins,
+  computeSetHeadersPins,
+  computeCorsPins,
+  computeVerifyAuthPins,
+  computeRateLimitPins,
+  computeCookiePins,
+  computeRedirectPins,
+  computeServeStaticPins,
   type ComputedPins,
   type PayloadField,
 } from "../../lib/node-pins";
@@ -1125,6 +1134,20 @@ function collectPinIds(node: Node): Set<string> {
   else if (node.type === "reduce") pins = computeReducePins();
   // Flow control
   else if (node.type === "retry") pins = computeRetryPins();
+  // HTTP Server nodes
+  else if (node.type === "route")
+    pins = computeRoutePins(
+      (node.data as { routes?: Array<{ method: string; path: string; label?: string }> } | undefined)?.routes,
+    );
+  else if (node.type === "parseBody") pins = computeParseBodyPins();
+  else if (node.type === "setHeaders") pins = computeSetHeadersPins();
+  else if (node.type === "cors") pins = computeCorsPins();
+  else if (node.type === "verifyAuth") pins = computeVerifyAuthPins();
+  else if (node.type === "rateLimit") pins = computeRateLimitPins();
+  else if (node.type === "cookie")
+    pins = computeCookiePins((node.data as { mode?: string } | undefined)?.mode);
+  else if (node.type === "redirect") pins = computeRedirectPins();
+  else if (node.type === "serveStatic") pins = computeServeStaticPins();
   else if (node.type === "customNode") {
     const def = (node.data as Record<string, unknown>)?._customDef as
       | { inputs?: Array<{ key: string }>; outputs?: Array<{ key: string }>; isAsync?: boolean }

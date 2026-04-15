@@ -34,11 +34,34 @@ impl Node for SetVariableNode {
                 };
             }
 
-            // Resolve the value input
-            let value = ctx
-                .resolve_input("in:value")
-                .await
-                .unwrap_or(Value::Null);
+            // Resolve value: prefer wired input pin, fall back to literal config
+            let value = if let Some(v) = ctx.resolve_input("in:value").await {
+                v
+            } else {
+                // Read literal value from node config
+                let raw = ctx.node_data.get("value")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+                let val_type = ctx.node_data.get("valueType")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("string");
+                if raw.is_empty() {
+                    Value::Null
+                } else {
+                    match val_type {
+                        "number" => raw.parse::<f64>()
+                            .map(|n| serde_json::json!(n))
+                            .unwrap_or(Value::String(raw.to_string())),
+                        "boolean" => match raw {
+                            "true" | "1" => Value::Bool(true),
+                            _ => Value::Bool(false),
+                        },
+                        "json" => serde_json::from_str(raw)
+                            .unwrap_or(Value::String(raw.to_string())),
+                        _ => Value::String(raw.to_string()),
+                    }
+                }
+            };
 
             // Store in the runtime variables namespace.
             // We use a special prefix "__var:" in the outputs to distinguish

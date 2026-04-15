@@ -9,8 +9,10 @@ import s from "./node.module.css";
 import { useFlowExec } from "../../../lib/exec-context";
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
-  const d = (data ?? {}) as { varName?: string };
+  const d = (data ?? {}) as { varName?: string; value?: string; valueType?: string };
   const varName = d.varName ?? "";
+  const literalValue = d.value ?? "";
+  const valueType = d.valueType ?? "string";
 
   const { statuses } = useFlowExec();
   const status = statuses[id] ?? "idle";
@@ -21,6 +23,10 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
     : status === "pending" ? s.statusPending
     : "";
 
+  const subtitle = literalValue
+    ? `= ${literalValue} (${valueType})`
+    : "wire in:value or set in inspector";
+
   return (
     <div className={clsx(s.node, s.envSetterNode, selected && s.nodeSelected, statusClass)}>
       <div className={`${s.header} ${s.headerEnvSetter}`}>
@@ -30,9 +36,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
 
       <div className={s.body}>
         <div className={s.urlText}>
-          <span className={s.muted}>
-            {varName ? `sets ${varName}` : "pick a name in the inspector"}
-          </span>
+          <span className={s.muted}>{subtitle}</span>
         </div>
       </div>
 
@@ -48,7 +52,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
         </div>
       </div>
 
-      {/* Value input */}
+      {/* Value input — still available for dynamic wiring */}
       <div className={s.pinRow}>
         <div className={s.pinLabelLeft}>
           <Handle id="in:value" type="target" position={Position.Left} className={`${s.pin} ${s.pinUnknown}`} />

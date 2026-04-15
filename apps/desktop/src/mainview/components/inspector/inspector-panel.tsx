@@ -185,7 +185,12 @@ export function InspectorPanel({
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
           />
-        ) : node.type === "setVariable" || node.type === "getVariable" ? (
+        ) : node.type === "setVariable" ? (
+          <SetVariableEditor
+            data={(node.data ?? {}) as Record<string, unknown>}
+            onChange={(d) => onChange(node.id, d)}
+          />
+        ) : node.type === "getVariable" ? (
           <VariableEditor
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
@@ -1733,7 +1738,69 @@ function OnEventEditor({ data, onChange }: OnEventEditorProps) {
   );
 }
 
-// ─── Variable (Set/Get) editor ──────────────────────────────────
+// ─── Set Variable editor ────────────────────────────────────────
+
+const SET_VAR_TYPES = [
+  { value: "string", label: "String" },
+  { value: "number", label: "Number" },
+  { value: "boolean", label: "Boolean" },
+  { value: "json", label: "JSON" },
+] as const;
+
+interface SetVariableEditorProps {
+  data: Record<string, unknown>;
+  onChange: (data: Record<string, unknown>) => void;
+}
+
+function SetVariableEditor({ data, onChange }: SetVariableEditorProps) {
+  const varName = (data.varName as string) ?? "";
+  const value = (data.value as string) ?? "";
+  const valueType = (data.valueType as string) ?? "string";
+
+  return (
+    <div className={s.form}>
+      <div className={s.field}>
+        <label className={s.label}>Variable Name</label>
+        <input
+          className={s.input}
+          value={varName}
+          onChange={(e) => onChange({ ...data, varName: e.target.value })}
+          placeholder="myVariable"
+          spellCheck={false}
+        />
+      </div>
+      <div className={s.field}>
+        <label className={s.label}>Value</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input
+            className={s.input}
+            style={{ flex: 1 }}
+            value={value}
+            onChange={(e) => onChange({ ...data, value: e.target.value })}
+            placeholder="literal value (or wire in:value pin)"
+            spellCheck={false}
+          />
+          <select
+            className={s.input}
+            style={{ flex: "0 0 80px" }}
+            value={valueType}
+            onChange={(e) => onChange({ ...data, valueType: e.target.value })}
+          >
+            {SET_VAR_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className={s.schemaHint}>
+          Set a literal value here, or leave empty and wire the <strong>in:value</strong> pin
+          from upstream. Wired pin takes priority over the literal.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Variable (Get) editor ──────────────────────────────────────
 
 interface VariableEditorProps {
   data: Record<string, unknown>;
@@ -1755,8 +1822,7 @@ function VariableEditor({ data, onChange }: VariableEditorProps) {
           spellCheck={false}
         />
         <div className={s.schemaHint}>
-          Runtime flow variable. Use <strong>Set Variable</strong> to write
-          and <strong>Get Variable</strong> to read. Undefined reads show as errors.
+          Reads a runtime variable set by Set Variable.
         </div>
       </div>
     </div>
