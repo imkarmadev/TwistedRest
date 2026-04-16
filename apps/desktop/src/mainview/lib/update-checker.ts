@@ -10,7 +10,7 @@
  */
 
 const REPO = "imkarmadev/TwistedFlow";
-const CURRENT_VERSION = "1.1.0"; // keep in sync with tauri.conf.json
+const CURRENT_VERSION = "1.2.0"; // keep in sync with tauri.conf.json
 
 interface UpdateInfo {
   currentVersion: string;
