@@ -4,7 +4,7 @@
 //!   twistedflow plugin new <name> [--category C] [--description D] [--node N]... [--force]
 //!   twistedflow plugin build [--install DIR] [--no-install] [--debug]
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 // ── CLI args ────────────────────────────────────────────────────────
@@ -213,33 +213,63 @@ fn to_camel(s: &str) -> String {
     out
 }
 
-/// The absolute path to the twistedflow-plugin crate as known at compile time.
-/// This is resolved from the CLI crate's CARGO_MANIFEST_DIR since the plugin
-/// SDK lives in the same workspace.
-const SDK_CRATE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../twistedflow-plugin");
+/// The SDK crate source files, embedded at compile time. This makes the CLI
+/// fully self-contained — external users don't need the repo or crates.io.
+const EMBEDDED_SDK_CARGO_TOML: &str =
+    include_str!("../../twistedflow-plugin/Cargo.toml");
+const EMBEDDED_SDK_LIB_RS: &str =
+    include_str!("../../twistedflow-plugin/src/lib.rs");
+
+/// Extract the embedded SDK to `~/.twistedflow/sdk/twistedflow-plugin/`
+/// so scaffolded plugins can depend on it via path. Only writes if the
+/// files are missing or the version changed.
+fn ensure_sdk_extracted() -> Result<PathBuf, String> {
+    let home = std::env::var("HOME").map_err(|_| "$HOME not set")?;
+    let sdk_dir = PathBuf::from(home)
+        .join(".twistedflow/sdk/twistedflow-plugin");
+
+    let needs_write = if sdk_dir.join("Cargo.toml").exists() {
+        // Check if version changed (re-extract on CLI upgrade)
+        let existing = std::fs::read_to_string(sdk_dir.join("Cargo.toml"))
+            .unwrap_or_default();
+        existing != EMBEDDED_SDK_CARGO_TOML
+    } else {
+        true
+    };
+
+    if needs_write {
+        std::fs::create_dir_all(sdk_dir.join("src"))
+            .map_err(|e| format!("Failed to create SDK dir: {}", e))?;
+        std::fs::write(sdk_dir.join("Cargo.toml"), EMBEDDED_SDK_CARGO_TOML)
+            .map_err(|e| format!("Failed to write SDK Cargo.toml: {}", e))?;
+        std::fs::write(sdk_dir.join("src/lib.rs"), EMBEDDED_SDK_LIB_RS)
+            .map_err(|e| format!("Failed to write SDK lib.rs: {}", e))?;
+    }
+
+    Ok(sdk_dir)
+}
 
 /// Generate the `twistedflow-plugin` dependency line for Cargo.toml.
-/// Priority: env override > compiled-in absolute path (if exists on disk) > git fallback.
+/// Priority: env override > extracted SDK path.
 fn sdk_dep_string() -> String {
     // 1. Explicit env override
     if let Ok(path) = std::env::var("TWISTEDFLOW_PLUGIN_SDK_PATH") {
         return format!(r#"twistedflow-plugin = {{ path = "{}" }}"#, path);
     }
 
-    // 2. Use the compiled-in SDK path (works when running a dev build from the repo)
-    let sdk_path = Path::new(SDK_CRATE_DIR);
-    if sdk_path.exists() {
-        // Canonicalize to get a clean absolute path
-        if let Ok(abs) = sdk_path.canonicalize() {
-            return format!(
+    // 2. Extract embedded SDK and use path dep (works everywhere)
+    match ensure_sdk_extracted() {
+        Ok(sdk_dir) => {
+            format!(
                 r#"twistedflow-plugin = {{ path = "{}" }}"#,
-                abs.display()
-            );
+                sdk_dir.display()
+            )
+        }
+        Err(e) => {
+            eprintln!("Warning: could not extract SDK: {}. Falling back to git dep.", e);
+            r#"twistedflow-plugin = { git = "https://github.com/imkarmadev/TwistedFlow", package = "twistedflow-plugin" }"#.to_string()
         }
     }
-
-    // 3. Fallback: git dep (for release builds where the source tree isn't around)
-    r#"twistedflow-plugin = { git = "https://github.com/imkarmadev/TwistedFlow", package = "twistedflow-plugin" }"#.to_string()
 }
 
 // ── `plugin build` ──────────────────────────────────────────────────
