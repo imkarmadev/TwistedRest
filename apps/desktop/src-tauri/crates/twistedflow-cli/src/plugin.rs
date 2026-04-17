@@ -213,59 +213,33 @@ fn to_camel(s: &str) -> String {
     out
 }
 
+/// The absolute path to the twistedflow-plugin crate as known at compile time.
+/// This is resolved from the CLI crate's CARGO_MANIFEST_DIR since the plugin
+/// SDK lives in the same workspace.
+const SDK_CRATE_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../twistedflow-plugin");
+
 /// Generate the `twistedflow-plugin` dependency line for Cargo.toml.
-/// Priority: env override > in-tree relative > git fallback.
+/// Priority: env override > compiled-in absolute path (if exists on disk) > git fallback.
 fn sdk_dep_string() -> String {
+    // 1. Explicit env override
     if let Ok(path) = std::env::var("TWISTEDFLOW_PLUGIN_SDK_PATH") {
         return format!(r#"twistedflow-plugin = {{ path = "{}" }}"#, path);
     }
 
-    // If we're inside the TwistedFlow repo, use a relative path.
-    if let Some(rel) = in_tree_sdk_path() {
-        return format!(r#"twistedflow-plugin = {{ path = "{}" }}"#, rel);
-    }
-
-    // Fallback: git dep
-    r#"twistedflow-plugin = { git = "https://github.com/imkarmadev/TwistedFlow", package = "twistedflow-plugin" }"#.to_string()
-}
-
-fn in_tree_sdk_path() -> Option<String> {
-    // Walk up from CWD looking for a `twistedflow-plugin` crate in the workspace.
-    let cwd = std::env::current_dir().ok()?;
-    let mut dir = cwd.as_path();
-    for _ in 0..8 {
-        let candidate = dir.join("apps/desktop/src-tauri/crates/twistedflow-plugin");
-        if candidate.exists() {
-            // Compute a path relative to the new plugin's location (cwd/<name>).
-            // Since the plugin lives one level deeper than cwd, prefix an extra "../".
-            let rel = pathdiff(&cwd, &candidate)?;
-            return Some(format!("../{}", rel));
+    // 2. Use the compiled-in SDK path (works when running a dev build from the repo)
+    let sdk_path = Path::new(SDK_CRATE_DIR);
+    if sdk_path.exists() {
+        // Canonicalize to get a clean absolute path
+        if let Ok(abs) = sdk_path.canonicalize() {
+            return format!(
+                r#"twistedflow-plugin = {{ path = "{}" }}"#,
+                abs.display()
+            );
         }
-        dir = dir.parent()?;
     }
-    None
-}
 
-/// Minimal path diffing: return a path from `base` to `target` using "../" and components.
-fn pathdiff(base: &Path, target: &Path) -> Option<String> {
-    let base = base.canonicalize().ok()?;
-    let target = target.canonicalize().ok()?;
-    let base_parts: Vec<_> = base.components().collect();
-    let target_parts: Vec<_> = target.components().collect();
-    let common = base_parts
-        .iter()
-        .zip(target_parts.iter())
-        .take_while(|(a, b)| a == b)
-        .count();
-    let ups = base_parts.len() - common;
-    let mut out = PathBuf::new();
-    for _ in 0..ups {
-        out.push("..");
-    }
-    for p in &target_parts[common..] {
-        out.push(p.as_os_str());
-    }
-    Some(out.to_string_lossy().into_owned())
+    // 3. Fallback: git dep (for release builds where the source tree isn't around)
+    r#"twistedflow-plugin = { git = "https://github.com/imkarmadev/TwistedFlow", package = "twistedflow-plugin" }"#.to_string()
 }
 
 // ── `plugin build` ──────────────────────────────────────────────────
