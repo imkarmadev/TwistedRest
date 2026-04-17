@@ -7,12 +7,18 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import clsx from "clsx";
 import s from "./node.module.css";
 import { useFlowExec } from "../../../lib/exec-context";
+import { useFlowVariables } from "../../../lib/variables-context";
+import { pinClass } from "../../../lib/pin-classes";
 
 export function SetVariableNode({ id, data, selected }: NodeProps) {
   const d = (data ?? {}) as { varName?: string; value?: string; valueType?: string };
   const varName = d.varName ?? "";
   const literalValue = d.value ?? "";
   const valueType = d.valueType ?? "string";
+
+  const { variables } = useFlowVariables();
+  const decl = variables.find((v) => v.name === varName);
+  const declaredType = decl?.type ?? "unknown";
 
   const { statuses } = useFlowExec();
   const status = statuses[id] ?? "idle";
@@ -55,7 +61,7 @@ export function SetVariableNode({ id, data, selected }: NodeProps) {
       {/* Value input — still available for dynamic wiring */}
       <div className={s.pinRow}>
         <div className={s.pinLabelLeft}>
-          <Handle id="in:value" type="target" position={Position.Left} className={`${s.pin} ${s.pinUnknown}`} />
+          <Handle id="in:value" type="target" position={Position.Left} className={`${s.pin} ${pinClass(s, declaredType)}`} />
           <span className={s.pinName}>value</span>
         </div>
         <span className={s.pinSpacer} />

@@ -104,6 +104,7 @@ import {
 } from "../../lib/node-pins";
 import { getInputPinSourceType, getSourcePinType } from "../../lib/schema-resolution";
 import { FlowExecContext, type FlowExecContextValue, type ProjectEnvironment } from "../../lib/exec-context";
+import { FlowVariablesContext, type FlowVariable } from "../../lib/variables-context";
 import s from "./flow-canvas.module.css";
 
 interface FlowCanvasProps {
@@ -136,6 +137,11 @@ interface FlowCanvasProps {
   ) => void;
   /** Console panel append callback — Log nodes call into this. */
   onLog: (entry: { nodeId: string; label: string; value: unknown }) => void;
+  /** Notifies the parent of the latest variable declarations (same pattern as onResultsChange). */
+  onVariablesChange?: (variables: FlowVariable[]) => void;
+  /** Registers a setter so the parent (App / Inspector) can push variable changes
+   *  back into the canvas — same pattern as registerUpdateNodeData. */
+  registerSetVariables?: (fn: (vars: FlowVariable[]) => void) => void;
 }
 
 /**
@@ -187,11 +193,14 @@ function FlowCanvasInner({
   onRawResponsesChange,
   registerGetInputType,
   onLog,
+  onVariablesChange,
+  registerSetVariables,
 }: FlowCanvasProps) {
   const reactFlow = useReactFlow();
   const rfUpdateNodeInternals = useUpdateNodeInternals();
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [variables, setVariables] = useState<FlowVariable[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Palette state ─────────────────────────────────────────
@@ -226,12 +235,16 @@ function FlowCanvasInner({
   // Always-fresh refs so the run handler closes over the latest graph
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
+  const variablesRef = useRef(variables);
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
   useEffect(() => {
     edgesRef.current = edges;
   }, [edges]);
+  useEffect(() => {
+    variablesRef.current = variables;
+  }, [variables]);
 
   // ── Always-on event listeners scoped by flowFilename ──
   // These run regardless of whether *this* canvas started the run —
@@ -290,6 +303,11 @@ function FlowCanvasInner({
   useEffect(() => {
     onRawResponsesChange(rawResponses);
   }, [rawResponses, onRawResponsesChange]);
+
+  // Push variables upward so the Inspector can render the Variables Panel.
+  useEffect(() => {
+    onVariablesChange?.(variables);
+  }, [variables, onVariablesChange]);
 
   // Re-register the type-resolver closure on every nodes/edges change so the
   // Inspector always queries against the current graph snapshot.
@@ -399,6 +417,7 @@ function FlowCanvasInner({
     void invoke<{
       nodes: unknown[];
       edges: unknown[];
+      variables?: FlowVariable[];
       viewport?: { x: number; y: number; zoom: number };
     } | null>("get_flow", { projectPath, filename: flowFilename }).then((flow) => {
       if (cancelled || !flow) return;
@@ -406,6 +425,7 @@ function FlowCanvasInner({
       const domainEdges = (flow.edges as DomainEdge[]) ?? [];
       setNodes(domainNodes.map(domainToRf));
       setEdges(domainEdges.map(domainEdgeToRf));
+      setVariables((flow.variables as FlowVariable[]) ?? []);
 
       // Restore saved viewport or fit. We use a timeout to let React
       // Flow fully process the new nodes before manipulating the viewport.
@@ -443,13 +463,14 @@ function FlowCanvasInner({
           nodes: nodesRef.current.map(rfToDomain),
           edges: edgesRef.current.map(rfEdgeToDomain),
           viewport: viewportRef.current,
+          variables: variablesRef.current,
         });
       }
     };
   }, [projectPath, flowFilename, reactFlow]);
 
-  // ── Debounced autosave (nodes + edges + viewport) ──────────
-  // Fires on node/edge changes AND on viewport changes (via viewportTick).
+  // ── Debounced autosave (nodes + edges + variables + viewport) ──────────
+  // Fires on node/edge/variable changes AND on viewport changes (via viewportTick).
   useEffect(() => {
     if (loading) return;
     if (justLoadedRef.current) {
@@ -467,10 +488,11 @@ function FlowCanvasInner({
         nodes: domainNodes,
         edges: domainEdges,
         viewport: viewportRef.current,
+        variables,
       });
     }, 600);
     return () => clearTimeout(t);
-  }, [nodes, edges, viewportTick, projectPath, flowFilename, loading]);
+  }, [nodes, edges, variables, viewportTick, projectPath, flowFilename, loading]);
 
   // ── React Flow handlers ────────────────────────────────────
   const onNodesChange = useCallback(
@@ -525,7 +547,7 @@ function FlowCanvasInner({
       // We do this in a microtask so it sees the just-updated node list.
       queueMicrotask(() => {
         setNodes((latestNodes) => {
-          setEdges((eds) => cullDanglingEdges(eds, latestNodes));
+          setEdges((eds) => cullDanglingEdges(eds, latestNodes, variablesRef.current));
           return latestNodes;
         });
         // Force React Flow to re-scan this node's Handle elements.
@@ -548,6 +570,7 @@ function FlowCanvasInner({
   // Expose those callbacks to the parent so the inspector can drive them.
   useEffect(() => registerUpdateNodeData(updateNodeData), [registerUpdateNodeData, updateNodeData]);
   useEffect(() => registerDeleteNode(deleteNode), [registerDeleteNode, deleteNode]);
+  useEffect(() => registerSetVariables?.(setVariables), [registerSetVariables]);
 
   // Active env = the one selected on the Start node. The Start node stores
   // the env filename (e.g. "production.env.json") in data.environmentFilename.
@@ -589,8 +612,16 @@ function FlowCanvasInner({
       envVars[v.key] = v.value;
     }
 
+    // Build variable declarations for the executor's pre-seeding
+    const variableDecls = variablesRef.current.map((v) => ({
+      name: v.name,
+      type: v.type,
+      default: v.default,
+    }));
+
     const context = {
       envVars,
+      variables: variableDecls,
     };
 
     // Invoke — event listeners are always-on (see useEffect above)
@@ -835,7 +866,13 @@ function FlowCanvasInner({
 
   const nodeTypes = useMemo(() => NODE_TYPES, []);
 
+  const variablesContextValue = useMemo(
+    () => ({ variables, setVariables }),
+    [variables],
+  );
+
   return (
+    <FlowVariablesContext.Provider value={variablesContextValue}>
     <FlowExecContext.Provider value={execContextValue}>
       <div className={s.canvas}>
         <div className={s.toolbar}>
@@ -935,6 +972,7 @@ function FlowCanvasInner({
         )}
       </div>
     </FlowExecContext.Provider>
+    </FlowVariablesContext.Provider>
   );
 }
 
@@ -1063,11 +1101,11 @@ function validateFlow(
  * After a node's data changes, the set of pins it exposes may shrink.
  * Drop any edges whose source or target handle no longer exists.
  */
-function cullDanglingEdges(edges: Edge[], nodes: Node[]): Edge[] {
+function cullDanglingEdges(edges: Edge[], nodes: Node[], variables: FlowVariable[] = []): Edge[] {
   const pinIndex = new Map<string, Set<string>>();
   const nodeIndex = new Map<string, Node>();
   for (const n of nodes) {
-    pinIndex.set(n.id, collectPinIds(n));
+    pinIndex.set(n.id, collectPinIds(n, variables));
     nodeIndex.set(n.id, n);
   }
   return edges.filter((e) => {
@@ -1087,7 +1125,7 @@ function cullDanglingEdges(edges: Edge[], nodes: Node[]): Edge[] {
   });
 }
 
-function collectPinIds(node: Node): Set<string> {
+function collectPinIds(node: Node, variables: FlowVariable[] = []): Set<string> {
   let pins: ComputedPins;
   if (node.type === "start") pins = computeStartPins();
   else if (node.type === "httpRequest") pins = computeHttpRequestPins(node.data ?? {});
@@ -1102,8 +1140,15 @@ function collectPinIds(node: Node): Set<string> {
     );
   else if (node.type === "tap") pins = computeTapPins();
   else if (node.type === "log") pins = computeLogPins();
-  else if (node.type === "setVariable") pins = computeSetVariablePins();
-  else if (node.type === "getVariable") pins = computeGetVariablePins((node.data as { varName?: string } | undefined)?.varName);
+  else if (node.type === "setVariable") {
+    const varName = (node.data as { varName?: string } | undefined)?.varName;
+    const decl = variables.find((v) => v.name === varName);
+    pins = computeSetVariablePins(decl?.type);
+  } else if (node.type === "getVariable") {
+    const varName = (node.data as { varName?: string } | undefined)?.varName;
+    const decl = variables.find((v) => v.name === varName);
+    pins = computeGetVariablePins(varName, decl?.type);
+  }
   else if (node.type === "match")
     pins = computeMatchPins(
       (node.data as { cases?: Array<{ value: string; label?: string }> } | undefined)?.cases,

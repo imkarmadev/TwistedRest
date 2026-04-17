@@ -122,6 +122,20 @@ pub struct ExecContext {
     pub env_headers: Option<Vec<HeaderEntry>>,
     pub env_vars: Option<HashMap<String, Value>>,
     pub auth: Option<ExecAuth>,
+    /// Flow-level variable declarations with types and defaults.
+    #[serde(default)]
+    pub variables: Option<Vec<VariableDecl>>,
+}
+
+/// A typed variable declaration from the flow's `variables` array.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VariableDecl {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub var_type: String,
+    #[serde(default)]
+    pub default: Option<String>,
 }
 
 /// HTTP request shape sent to reqwest.

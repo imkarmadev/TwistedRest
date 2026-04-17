@@ -38,6 +38,8 @@ pub struct FlowDetail {
     pub nodes: Value,
     pub edges: Value,
     pub viewport: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variables: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -267,6 +269,7 @@ pub fn get_flow(project_path: String, filename: String) -> Result<FlowDetail, St
         nodes: parsed.get("nodes").cloned().unwrap_or(Value::Array(vec![])),
         edges: parsed.get("edges").cloned().unwrap_or(Value::Array(vec![])),
         viewport: parsed.get("viewport").cloned(),
+        variables: parsed.get("variables").cloned(),
     })
 }
 
@@ -278,13 +281,17 @@ pub fn save_flow(
     nodes: Value,
     edges: Value,
     viewport: Option<Value>,
+    variables: Option<Value>,
 ) -> Result<(), String> {
     let flow_path = Path::new(&project_path).join("flows").join(&filename);
 
-    // Read existing to preserve name
-    let existing_name = std::fs::read_to_string(&flow_path)
+    // Read existing to preserve name and variables (if not explicitly passed)
+    let existing = std::fs::read_to_string(&flow_path)
         .ok()
-        .and_then(|c| serde_json::from_str::<Value>(&c).ok())
+        .and_then(|c| serde_json::from_str::<Value>(&c).ok());
+
+    let existing_name = existing
+        .as_ref()
         .and_then(|v| v.get("name").and_then(|n| n.as_str()).map(|s| s.to_string()))
         .unwrap_or_else(|| {
             filename
@@ -293,13 +300,22 @@ pub fn save_flow(
                 .to_string()
         });
 
-    let flow = serde_json::json!({
+    // Use provided variables, or preserve existing from disk
+    let vars = variables.or_else(|| {
+        existing.as_ref().and_then(|v| v.get("variables").cloned())
+    });
+
+    let mut flow = serde_json::json!({
         "twistedflow": 1,
         "name": existing_name,
         "nodes": nodes,
         "edges": edges,
         "viewport": viewport.unwrap_or(serde_json::json!({ "x": 0, "y": 0, "zoom": 1.0 })),
     });
+
+    if let Some(v) = vars {
+        flow.as_object_mut().unwrap().insert("variables".into(), v);
+    }
 
     let json = serde_json::to_string_pretty(&flow).unwrap();
     std::fs::write(&flow_path, json)
@@ -321,6 +337,7 @@ pub fn create_flow(project_path: String, name: String) -> Result<FlowSummary, St
     let flow = serde_json::json!({
         "twistedflow": 1,
         "name": name,
+        "variables": [],
         "nodes": [{
             "id": "start-1",
             "kind": "start",

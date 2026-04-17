@@ -160,11 +160,11 @@ export function computeBreakObjectPins(): ComputedPins {
 /**
  * Set Variable — exec-chain node that writes a runtime variable.
  */
-export function computeSetVariablePins(): ComputedPins {
+export function computeSetVariablePins(declaredType?: DataType): ComputedPins {
   return {
     inputs: [
       EXEC_IN,
-      { id: "in:value", side: "left", label: "value", kind: "data", dataType: "unknown" },
+      { id: "in:value", side: "left", label: "value", kind: "data", dataType: declaredType ?? "unknown" },
     ],
     outputs: [EXEC_OUT],
   };
@@ -173,7 +173,7 @@ export function computeSetVariablePins(): ComputedPins {
 /**
  * Get Variable — data node that reads a runtime variable.
  */
-export function computeGetVariablePins(varName?: string): ComputedPins {
+export function computeGetVariablePins(varName?: string, declaredType?: DataType): ComputedPins {
   return {
     inputs: [],
     outputs: [
@@ -182,7 +182,7 @@ export function computeGetVariablePins(varName?: string): ComputedPins {
         side: "right",
         label: varName || "value",
         kind: "data",
-        dataType: "unknown",
+        dataType: declaredType ?? "unknown",
       },
     ],
   };

@@ -61,6 +61,34 @@ pub async fn run_flow(opts: Arc<RunFlowOpts>) -> Result<(), String> {
         }
     }
 
+    // Pre-seed flow variables with declared defaults
+    {
+        let var_decls = opts.context.variables.clone().unwrap_or_default();
+        if !var_decls.is_empty() {
+            let mut out = outputs.lock().await;
+            let var_store = out.entry("__variables__".to_string()).or_default();
+            for decl in &var_decls {
+                if let Some(ref default_str) = decl.default {
+                    if !default_str.is_empty() {
+                        let val = match decl.var_type.as_str() {
+                            "number" => default_str.parse::<f64>()
+                                .map(|n| serde_json::json!(n))
+                                .unwrap_or(Value::String(default_str.clone())),
+                            "boolean" => match default_str.as_str() {
+                                "true" | "1" => Value::Bool(true),
+                                _ => Value::Bool(false),
+                            },
+                            "object" | "array" => serde_json::from_str(default_str)
+                                .unwrap_or(Value::String(default_str.clone())),
+                            _ => Value::String(default_str.clone()),
+                        };
+                        var_store.entry(decl.name.clone()).or_insert(val);
+                    }
+                }
+            }
+        }
+    }
+
     // Mark non-pure-data nodes as pending
     let start_id = start.id.clone();
     for node in index.nodes.values() {

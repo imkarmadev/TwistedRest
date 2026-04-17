@@ -15,7 +15,7 @@ pub use graph::{FlowGraph, GraphIndex, GraphNode, GraphEdge, EdgeKind};
 pub use node::{
     DataType, ExecAuth, ExecContext, HeaderEntry, HttpRequest, HttpResponse, LogEntry,
     Node, NodeCtx, NodeMeta, NodeMetadata, NodeRegistration, NodeResult, NodeStatus, PinDef,
-    Outputs, StatusEvent, TapLogs, all_node_metadata, build_registry,
+    Outputs, StatusEvent, TapLogs, VariableDecl, all_node_metadata, build_registry,
 };
 pub use flow_file::FlowFile;
 pub use template::{input_pins_for, render_template};

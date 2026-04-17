@@ -7,10 +7,16 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import clsx from "clsx";
 import s from "./node.module.css";
 import { useFlowExec } from "../../../lib/exec-context";
+import { useFlowVariables } from "../../../lib/variables-context";
+import { pinClass } from "../../../lib/pin-classes";
 
 export function GetVariableNode({ id, data, selected }: NodeProps) {
   const d = (data ?? {}) as { varName?: string };
   const varName = d.varName ?? "";
+
+  const { variables } = useFlowVariables();
+  const decl = variables.find((v) => v.name === varName);
+  const declaredType = decl?.type ?? "unknown";
 
   const { statuses } = useFlowExec();
   const status = statuses[id] ?? "idle";
@@ -44,7 +50,7 @@ export function GetVariableNode({ id, data, selected }: NodeProps) {
             id="out:value"
             type="source"
             position={Position.Right}
-            className={`${s.pin} ${s.pinUnknown}`}
+            className={`${s.pin} ${pinClass(s, declaredType)}`}
           />
         </div>
       </div>

@@ -29,6 +29,7 @@ import { FlowCanvas } from "./components/canvas/flow-canvas";
 import { InspectorPanel } from "./components/inspector/inspector-panel";
 import { ProjectSettingsModal } from "./components/settings/project-settings-modal";
 import type { DataType } from "@twistedflow/core";
+import type { FlowVariable } from "./lib/variables-context";
 import { ConsoleContext, type ConsoleEntry } from "./lib/console-context";
 import { ConsolePanel } from "./components/console/console-panel";
 import { checkForUpdate } from "./lib/update-checker";
@@ -104,6 +105,14 @@ export default function App() {
     };
   }, []);
 
+  // ── Flow variables (scoped to the active flow) ─────────────────────
+  const [flowVariables, setFlowVariables] = useState<FlowVariable[]>([]);
+
+  const registerVariables = useCallback(
+    (vars: FlowVariable[]) => setFlowVariables(vars),
+    [],
+  );
+
   // ── Last-run results / errors / raw responses ─────────────────────
   const [lastResults, setLastResults] = useState<Record<string, Record<string, unknown>>>({});
   const [lastErrors, setLastErrors] = useState<Record<string, string>>({});
@@ -174,6 +183,7 @@ export default function App() {
   const getInputTypeRef = useRef<(nodeId: string, inputPinId: string) => DataType>(
     () => "unknown",
   );
+  const setVariablesRef = useRef<(vars: FlowVariable[]) => void>(() => {});
 
   const registerUpdateNodeData = useCallback(
     (fn: (id: string, data: Record<string, unknown>) => void) => {
@@ -187,6 +197,12 @@ export default function App() {
   const registerGetInputType = useCallback(
     (fn: (nodeId: string, inputPinId: string) => DataType) => {
       getInputTypeRef.current = fn;
+    },
+    [],
+  );
+  const registerSetVariables = useCallback(
+    (fn: (vars: FlowVariable[]) => void) => {
+      setVariablesRef.current = fn;
     },
     [],
   );
@@ -266,9 +282,10 @@ export default function App() {
     };
   }, [activeProjectPath, loadEnvironments]);
 
-  // Drop node selection when the active flow changes
+  // Drop node selection and reset variables when the active flow changes
   useEffect(() => {
     setSelectedNode(null);
+    setFlowVariables([]);
   }, [activeFlowFilename]);
 
   // ── Project open / create handlers (called by Sidebar) ───────────
@@ -291,6 +308,15 @@ export default function App() {
     deleteNodeRef.current(id);
     setSelectedNode(null);
   }, []);
+
+  /** When the inspector edits variables, update both App state and the canvas. */
+  const handleFlowVariablesChange = useCallback(
+    (vars: FlowVariable[]) => {
+      setFlowVariables(vars);
+      setVariablesRef.current(vars);
+    },
+    [],
+  );
 
   // ── Render ────────────────────────────────────────────────────────
   return (
@@ -356,6 +382,8 @@ export default function App() {
                 onRawResponsesChange={registerRawResponses}
                 registerGetInputType={registerGetInputType}
                 onLog={handleLog}
+                onVariablesChange={registerVariables}
+                registerSetVariables={registerSetVariables}
               />
             ) : (
               <div className={s.empty}>
@@ -367,9 +395,9 @@ export default function App() {
             )}
           </main>
 
-          {/* Inspector only mounts when something is selected — empty panel
-              wastes ~340px of canvas real estate. */}
-          {activeProjectPath && activeFlowFilename && selectedNode && (
+          {/* Inspector mounts when a node is selected OR when a flow is
+              active (to show the Variables Panel on empty-canvas click). */}
+          {activeProjectPath && activeFlowFilename && (
             <InspectorPanel
               node={selectedNode}
               onChange={handleInspectorChange}
@@ -379,6 +407,8 @@ export default function App() {
               errors={lastErrors}
               rawResponses={lastRawResponses}
               getInputType={getInputType}
+              flowVariables={flowVariables}
+              onFlowVariablesChange={handleFlowVariablesChange}
             />
           )}
         </div>
@@ -398,7 +428,7 @@ export default function App() {
         {/* Bottom console panel — visible on every flow, persists across switches.
             insetRight reserves space for the inspector island when it's mounted. */}
         {activeProjectPath && activeFlowFilename && (
-          <ConsolePanel insetRight={selectedNode ? 356 : 16} />
+          <ConsolePanel insetRight={356} />
         )}
       </div>
     </ConsoleContext.Provider>

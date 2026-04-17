@@ -184,6 +184,12 @@ export function resolveSourcePinSchema(
     return null;
   }
 
+  if (sourceNode.type === "getVariable") {
+    const declaredType = (sourceNode.data as { _declaredType?: string } | undefined)?._declaredType;
+    if (declaredType) return payloadTypeToZod(declaredType);
+    return null;
+  }
+
   if (sourceNode.type === "onEvent") {
     // Look up the payload field on the matching Emit Event(s) and return
     // its declared type as a Zod primitive.
@@ -309,6 +315,11 @@ export function getSourcePinType(
         ?.outputs) ?? [];
     const field = outputs.find((o) => o.key === pinId);
     return field?.type ?? "unknown";
+  }
+
+  if (sourceNode.type === "getVariable") {
+    const declaredType = (sourceNode.data as { _declaredType?: DataType } | undefined)?._declaredType;
+    return declaredType ?? "unknown";
   }
 
   if (sourceNode.type === "onEvent") {

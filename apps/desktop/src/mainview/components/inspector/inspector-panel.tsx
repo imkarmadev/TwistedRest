@@ -13,6 +13,7 @@ import { zodFromJson, type DataType } from "@twistedflow/core";
 import { evalZodSchema } from "../../lib/eval-schema";
 import { copyCurlToClipboard } from "../../lib/copy-curl";
 import type { Environment } from "../../use-tauri";
+import type { FlowVariable } from "../../lib/variables-context";
 import { JsonToZodModal } from "./json-to-zod-modal";
 import s from "./inspector-panel.module.css";
 
@@ -38,6 +39,10 @@ interface InspectorPanelProps {
    * pin so it can filter the target dropdown to sensible options.
    */
   getInputType: (nodeId: string, inputPinId: string) => DataType;
+  /** Flow-scoped variable declarations (shown in VariablesPanel when no node selected). */
+  flowVariables?: FlowVariable[];
+  /** Update the flow's variable declarations. */
+  onFlowVariablesChange?: (vars: FlowVariable[]) => void;
 }
 
 export function InspectorPanel({
@@ -49,12 +54,28 @@ export function InspectorPanel({
   errors,
   rawResponses,
   getInputType,
+  flowVariables,
+  onFlowVariablesChange,
 }: InspectorPanelProps) {
   if (!node) {
     return (
       <aside className={s.panel}>
         <div data-tauri-drag-region className={s.dragHandle} />
-        <div className={s.empty}>Select a node to edit</div>
+        {flowVariables && onFlowVariablesChange ? (
+          <>
+            <div className={s.header}>
+              <span className={s.headerKind}>flow variables</span>
+            </div>
+            <div className={s.body}>
+              <VariablesPanel
+                variables={flowVariables}
+                onChange={onFlowVariablesChange}
+              />
+            </div>
+          </>
+        ) : (
+          <div className={s.empty}>Select a node to edit</div>
+        )}
       </aside>
     );
   }
@@ -189,11 +210,13 @@ export function InspectorPanel({
           <SetVariableEditor
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
+            variables={flowVariables ?? []}
           />
         ) : node.type === "getVariable" ? (
           <VariableEditor
             data={(node.data ?? {}) as Record<string, unknown>}
             onChange={(d) => onChange(node.id, d)}
+            variables={flowVariables ?? []}
           />
         ) : node.type === "assert" ? (
           <SystemFieldEditor
@@ -367,6 +390,89 @@ export function InspectorPanel({
         )}
       </div>
     </aside>
+  );
+}
+
+// ─── Variables Panel (shown when no node is selected) ──────────
+
+const VAR_TYPES: Array<{ value: DataType; label: string }> = [
+  { value: "string", label: "string" },
+  { value: "number", label: "number" },
+  { value: "boolean", label: "boolean" },
+  { value: "object", label: "object" },
+  { value: "array", label: "array" },
+];
+
+interface VariablesPanelProps {
+  variables: FlowVariable[];
+  onChange: (vars: FlowVariable[]) => void;
+}
+
+function VariablesPanel({ variables, onChange }: VariablesPanelProps) {
+  const addVar = () =>
+    onChange([...variables, { name: "", type: "string", default: "" }]);
+  const removeVar = (i: number) =>
+    onChange(variables.filter((_, idx) => idx !== i));
+  const updateVar = (i: number, patch: Partial<FlowVariable>) =>
+    onChange(variables.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
+
+  return (
+    <div className={s.form}>
+      <div className={s.field}>
+        <div className={s.labelRow}>
+          <label className={s.label}>Declared Variables</label>
+          <button className={s.smallBtn} onClick={addVar}>
+            + add
+          </button>
+        </div>
+        {variables.length === 0 && (
+          <div className={s.subtleHint}>
+            No variables declared. Add typed variables here and use them in
+            Set/Get Variable nodes.
+          </div>
+        )}
+        {variables.map((v, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+            <div className={s.headerRow}>
+              <input
+                className={s.input}
+                value={v.name}
+                onChange={(e) => updateVar(i, { name: e.target.value })}
+                placeholder="name"
+                spellCheck={false}
+              />
+              <select
+                className={s.input}
+                style={{ flex: "0 0 80px" }}
+                value={v.type}
+                onChange={(e) => updateVar(i, { type: e.target.value as DataType })}
+              >
+                {VAR_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <button className={s.removeBtn} onClick={() => removeVar(i)}>
+                ×
+              </button>
+            </div>
+            <input
+              className={s.input}
+              value={v.default ?? ""}
+              onChange={(e) => updateVar(i, { default: e.target.value })}
+              placeholder="default value"
+              spellCheck={false}
+            />
+          </div>
+        ))}
+        <div className={s.schemaHint}>
+          Variables are scoped to this flow. Set Variable / Get Variable nodes
+          will show a dropdown of declared names. Types determine pin colors
+          and schema resolution. Defaults are pre-seeded at execution start.
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1835,24 +1941,66 @@ const SET_VAR_TYPES = [
 interface SetVariableEditorProps {
   data: Record<string, unknown>;
   onChange: (data: Record<string, unknown>) => void;
+  variables: FlowVariable[];
 }
 
-function SetVariableEditor({ data, onChange }: SetVariableEditorProps) {
+function SetVariableEditor({ data, onChange, variables }: SetVariableEditorProps) {
   const varName = (data.varName as string) ?? "";
   const value = (data.value as string) ?? "";
   const valueType = (data.valueType as string) ?? "string";
+  const hasDeclared = variables.length > 0;
+
+  // When the user picks a declared variable, auto-set the valueType to match
+  const handleVarSelect = (name: string) => {
+    const decl = variables.find((v) => v.name === name);
+    const patch: Record<string, unknown> = { ...data, varName: name };
+    if (decl) {
+      // Map declared type to the valueType used by the executor
+      const typeMap: Record<string, string> = {
+        string: "string",
+        number: "number",
+        boolean: "boolean",
+        object: "json",
+        array: "json",
+        unknown: "string",
+        null: "string",
+      };
+      patch.valueType = typeMap[decl.type] ?? "string";
+    }
+    onChange(patch);
+  };
 
   return (
     <div className={s.form}>
       <div className={s.field}>
         <label className={s.label}>Variable Name</label>
-        <input
-          className={s.input}
-          value={varName}
-          onChange={(e) => onChange({ ...data, varName: e.target.value })}
-          placeholder="myVariable"
-          spellCheck={false}
-        />
+        {hasDeclared ? (
+          <select
+            className={s.input}
+            value={varName}
+            onChange={(e) => handleVarSelect(e.target.value)}
+          >
+            <option value="">-- pick a variable --</option>
+            {variables.map((v) => (
+              <option key={v.name} value={v.name}>
+                {v.name} ({v.type})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className={s.input}
+            value={varName}
+            onChange={(e) => onChange({ ...data, varName: e.target.value })}
+            placeholder="myVariable"
+            spellCheck={false}
+          />
+        )}
+        {!hasDeclared && (
+          <div className={s.schemaHint}>
+            Tip: click empty canvas to declare typed variables in the Variables Panel.
+          </div>
+        )}
       </div>
       <div className={s.field}>
         <label className={s.label}>Value</label>
@@ -1890,22 +2038,57 @@ function SetVariableEditor({ data, onChange }: SetVariableEditorProps) {
 interface VariableEditorProps {
   data: Record<string, unknown>;
   onChange: (data: Record<string, unknown>) => void;
+  variables: FlowVariable[];
 }
 
-function VariableEditor({ data, onChange }: VariableEditorProps) {
+function VariableEditor({ data, onChange, variables }: VariableEditorProps) {
   const varName = (data.varName as string) ?? "";
+  const hasDeclared = variables.length > 0;
+  const decl = variables.find((v) => v.name === varName);
+
+  // When the user picks a declared variable, stash the type on node data
+  // so schema-resolution can read it without accessing the variables context.
+  const handleVarSelect = (name: string) => {
+    const d = variables.find((v) => v.name === name);
+    onChange({ ...data, varName: name, _declaredType: d?.type ?? "unknown" });
+  };
 
   return (
     <div className={s.form}>
       <div className={s.field}>
         <label className={s.label}>Variable Name</label>
-        <input
-          className={s.input}
-          value={varName}
-          onChange={(e) => onChange({ ...data, varName: e.target.value })}
-          placeholder="myVariable"
-          spellCheck={false}
-        />
+        {hasDeclared ? (
+          <select
+            className={s.input}
+            value={varName}
+            onChange={(e) => handleVarSelect(e.target.value)}
+          >
+            <option value="">-- pick a variable --</option>
+            {variables.map((v) => (
+              <option key={v.name} value={v.name}>
+                {v.name} ({v.type})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            className={s.input}
+            value={varName}
+            onChange={(e) => onChange({ ...data, varName: e.target.value })}
+            placeholder="myVariable"
+            spellCheck={false}
+          />
+        )}
+        {decl && (
+          <div className={s.subtleHint}>
+            Type: {decl.type}{decl.default ? ` (default: ${decl.default})` : ""}
+          </div>
+        )}
+        {!hasDeclared && (
+          <div className={s.schemaHint}>
+            Tip: click empty canvas to declare typed variables in the Variables Panel.
+          </div>
+        )}
         <div className={s.schemaHint}>
           Reads a runtime variable set by Set Variable.
         </div>
