@@ -34,9 +34,14 @@ impl Node for SetVariableNode {
                 };
             }
 
-            // Resolve value: prefer wired input pin, fall back to literal config
-            let value = if let Some(v) = ctx.resolve_input("in:value").await {
-                v
+            // Resolve value: prefer wired input pin, fall back to literal config.
+            // Check if there's actually a data edge to in:value first — if not,
+            // skip the resolve entirely (avoids potential re-execution via the
+            // lazy data resolution system which can't handle exec nodes).
+            let has_value_edge = ctx.index.data_source(ctx.node_id, "in:value").is_some();
+
+            let value = if has_value_edge {
+                ctx.resolve_input("in:value").await.unwrap_or(Value::Null)
             } else {
                 // Read literal value from node config
                 let raw = ctx.node_data.get("value")

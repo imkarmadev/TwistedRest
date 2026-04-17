@@ -164,7 +164,7 @@ export const NODE_REGISTRY: NodeTypeDef[] = [
     defaultExecInPin: "exec-in",
     defaultDataInPin: "in:value",
     acceptsDataInput: () => true,
-    defaultData: () => ({ varName: "" }),
+    defaultData: () => ({ varName: "", value: "", valueType: "string" }),
   },
   {
     type: "getVariable",
