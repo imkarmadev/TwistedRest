@@ -71,12 +71,18 @@ A visual flow engine. Build automations, API clients, HTTP servers, test suites,
 
 ### CLI + Compile to Binary
 
+Download `twistedflow-cli` from [GitHub Releases](https://github.com/imkarmadev/TwistedFlow/releases) — each release includes `twistedflow-cli-<platform>.tar.gz` for macOS (ARM + Intel) and Linux (x64).
+
 ```bash
+# Install (macOS Apple Silicon example)
+tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
+sudo mv twistedflow-cli /usr/local/bin/twistedflow
+
 # Run a flow headlessly
-twistedflow-cli run ./flows/main.flow.json -e API_KEY=abc123
+twistedflow run ./flows/main.flow.json -e API_KEY=abc123
 
 # Compile a project to a standalone binary
-twistedflow-cli build ~/my-project -o my-app --flow main --env prod
+twistedflow build ~/my-project -o my-app --flow main --env prod
 ./my-app   # just runs, no args needed
 ```
 
@@ -180,7 +186,18 @@ TwistedFlow/
 - [Rust](https://rustup.rs/) >= 1.77
 - Xcode Command Line Tools on macOS (`xcode-select --install`)
 
-### Install + Run
+### Install (Release)
+
+Download the desktop app and CLI from [GitHub Releases](https://github.com/imkarmadev/TwistedFlow/releases):
+- **Desktop app:** `.dmg` (macOS) or `.AppImage`/`.deb` (Linux)
+- **CLI:** `twistedflow-cli-<platform>.tar.gz` — extract and move to your PATH:
+
+```bash
+tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
+sudo mv twistedflow-cli /usr/local/bin/twistedflow
+```
+
+### From Source (Development)
 
 ```bash
 git clone https://github.com/imkarmadev/TwistedFlow.git
@@ -192,6 +209,14 @@ bun run dev
 ```
 
 First Rust compile takes ~30s. Subsequent rebuilds are <5s.
+
+To build the CLI from source:
+
+```bash
+cd apps/desktop/src-tauri
+cargo build --release -p twistedflow-cli
+# Binary: target/release/twistedflow-cli
+```
 
 ### Run Tests
 

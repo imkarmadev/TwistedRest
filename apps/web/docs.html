@@ -590,13 +590,21 @@
         <p>Grab it from <a href="https://github.com/imkarmadev/TwistedFlow/releases" target="_blank">GitHub Releases</a>.</p>
 
         <h3>CLI</h3>
-        <p>The CLI binary is included in the release. You can also build it from source:</p>
-        <pre><code><span class="comment"># Clone and build</span>
-git clone https://github.com/imkarmadev/TwistedFlow.git
+        <p>Download <code>twistedflow-cli</code> from <a href="https://github.com/imkarmadev/TwistedFlow/releases" target="_blank">GitHub Releases</a>. Each release includes a <code>twistedflow-cli-&lt;platform&gt;.tar.gz</code> for macOS (ARM + Intel) and Linux (x64).</p>
+        <pre><code><span class="comment"># Download and install (macOS Apple Silicon example)</span>
+tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
+sudo mv twistedflow-cli /usr/local/bin/twistedflow
+
+<span class="comment"># Verify</span>
+<span class="cmd">twistedflow</span> --help</code></pre>
+
+        <p>Or build from source:</p>
+        <pre><code>git clone https://github.com/imkarmadev/TwistedFlow.git
 cd TwistedFlow/apps/desktop/src-tauri
 cargo build --release -p twistedflow-cli
 
-<span class="comment"># Binary is at target/release/twistedflow-cli</span></code></pre>
+<span class="comment"># Binary is at target/release/twistedflow-cli</span>
+sudo ln -sf $(pwd)/target/release/twistedflow-cli /usr/local/bin/twistedflow</code></pre>
 
         <h3>From Source (Development)</h3>
         <p>Prerequisites: <strong>macOS or Linux</strong>, <a href="https://bun.sh" target="_blank">Bun</a> >= 1.2, <a href="https://rustup.rs" target="_blank">Rust</a> >= 1.77, Xcode CLI tools on macOS.</p>
@@ -1242,7 +1250,10 @@ bun run dev</code></pre>
         <h1>CLI Reference</h1>
         <p class="subtitle">Run flows headlessly and compile them to standalone binaries.</p>
 
-        <p>The CLI binary is <code>twistedflow-cli</code>. It shares the same Rust engine as the desktop app &mdash; same executor, same nodes, same WASM plugin support.</p>
+        <p>The CLI binary is <code>twistedflow-cli</code>. It shares the same Rust engine as the desktop app &mdash; same executor, same nodes, same WASM plugin support. Download it from <a href="https://github.com/imkarmadev/TwistedFlow/releases" target="_blank">GitHub Releases</a> (<code>twistedflow-cli-&lt;platform&gt;.tar.gz</code>) and install:</p>
+        <pre><code><span class="comment"># macOS Apple Silicon</span>
+tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
+sudo mv twistedflow-cli /usr/local/bin/twistedflow</code></pre>
 
         <h2 id="cli-run">twistedflow-cli run</h2>
         <p>Run a <code>.flow.json</code> file headlessly.</p>

@@ -29,6 +29,20 @@ Plugins run in a sandboxed [wasmtime](https://wasmtime.dev) instance with WASI p
 
 ## Quick start
 
+### Install the CLI
+
+Download `twistedflow-cli` from [GitHub Releases](https://github.com/imkarmadev/TwistedFlow/releases). Each release includes `twistedflow-cli-<platform>.tar.gz` for macOS (ARM + Intel) and Linux (x64).
+
+```bash
+# macOS Apple Silicon example
+tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
+sudo mv twistedflow-cli /usr/local/bin/twistedflow
+```
+
+Or build from source: `cargo build --release -p twistedflow-cli` in `apps/desktop/src-tauri/`.
+
+### Scaffold, build, run
+
 ```bash
 # Scaffold — creates ./my-plugin/ with Cargo.toml, src/lib.rs, README
 twistedflow plugin new my-plugin --category Utility --node Hello
@@ -41,7 +55,7 @@ cd my-plugin
 twistedflow plugin build
 ```
 
-Now open TwistedFlow desktop app or run `twistedflow-cli run some-flow.json`. Your node appears in the palette under the "Utility" category.
+Now open TwistedFlow desktop app or run `twistedflow run some-flow.json`. Your node appears in the palette under the "Utility" category.
 
 ---
 
