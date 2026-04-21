@@ -1,11 +1,11 @@
 /**
- * Shared console state for the bottom log panel.
+ * Shared console state for the bottom workspace's Console tab.
  *
  * The Log node (an exec-chain node) calls into the executor's onLog
  * callback when reached; the callback in App.tsx pushes a new entry
- * here, and the ConsolePanel component reads from this context.
+ * here, and the bottom workspace console view reads from this context.
  *
- * Lives in App.tsx, not in FlowCanvas, because the panel is a
+ * Lives in App.tsx, not in FlowCanvas, because the workspace chrome is a
  * top-level UI surface that can be toggled independently of the
  * canvas state and persists across flow switches.
  */

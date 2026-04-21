@@ -10,12 +10,12 @@
 //!             ├── exec-out  → next (on success)
 //!             └── exec-failed → error handler (optional)
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Retry",
@@ -70,16 +70,23 @@ impl Node for RetryNode {
                 }
 
                 if attempt > 0 {
-                    ctx.emit_log("Retry", json!({
-                        "attempt": attempt,
-                        "maxRetries": max_retries,
-                        "delayMs": delay_ms,
-                    }));
+                    ctx.emit_log(
+                        "Retry",
+                        json!({
+                            "attempt": attempt,
+                            "maxRetries": max_retries,
+                            "delayMs": delay_ms,
+                        }),
+                    );
                     tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                     delay_ms = (delay_ms as f64 * backoff_multiplier) as u64;
                 }
 
-                let body_id = ctx.index.next_exec(ctx.node_id, "exec-body").unwrap().to_string();
+                let body_id = ctx
+                    .index
+                    .next_exec(ctx.node_id, "exec-body")
+                    .unwrap()
+                    .to_string();
                 let result = ctx.run_chain_sync(body_id).await;
 
                 match result {

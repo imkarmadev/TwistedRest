@@ -2,10 +2,10 @@
 
 Importable `.flow.json` files showcasing TwistedFlow's capabilities. To use one:
 
-1. Open TwistedFlow
-2. Select a project in the sidebar
-3. Click **+ import** (below the flow list)
-4. Pick a `.flow.json` file
+1. Open or create a TwistedFlow project
+2. Copy the example `.flow.json` file into that project's `flows/` directory
+3. Reload the project or reopen it in the desktop app
+4. Open the flow from the **Flows** tab in the bottom workspace
 
 ## Available Examples
 

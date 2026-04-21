@@ -9,11 +9,13 @@ name = "twistedflow-cli"
 path = "src/main.rs"
 
 [dependencies]
+twistedflow-builder = { path = "../twistedflow-builder" }
 twistedflow-engine = { path = "../twistedflow-engine" }
 twistedflow-nodes = { path = "../twistedflow-nodes" }
+twistedflow-plugin-dev = { path = "../twistedflow-plugin-dev" }
+twistedflow-project = { path = "../twistedflow-project" }
 serde_json = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 tokio-util = { workspace = true }
 reqwest = { workspace = true }
 clap = { version = "4", features = ["derive"] }
-tempfile = "3"

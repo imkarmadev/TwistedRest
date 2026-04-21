@@ -1,10 +1,10 @@
-# TwistedFlow Plugin Author Guide
+# TwistedFlow Custom Node Author Guide
 
-Write custom nodes in Rust, compile to WebAssembly, drop into a plugin directory — they appear in the node palette alongside built-in nodes.
+Write custom nodes in Rust, compile to WebAssembly, and install them into a TwistedFlow project. They appear in the node palette alongside built-in nodes.
 
 ## Table of Contents
 
-1. [What is a plugin?](#what-is-a-plugin)
+1. [What is a custom node?](#what-is-a-custom-node)
 2. [Quick start](#quick-start)
 3. [The `nodes!` macro](#the-nodes-macro)
 4. [Pin types](#pin-types)
@@ -13,17 +13,18 @@ Write custom nodes in Rust, compile to WebAssembly, drop into a plugin directory
 7. [Host callbacks](#host-callbacks)
 8. [Error handling](#error-handling)
 9. [ABI details](#abi-details)
-10. [Testing locally](#testing-locally)
-11. [Install locations](#install-locations)
-12. [Troubleshooting](#troubleshooting)
+10. [Desktop authoring](#desktop-authoring)
+11. [Testing locally](#testing-locally)
+12. [Install locations](#install-locations)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
-## What is a plugin?
+## What is a custom node?
 
-A plugin is a `.wasm` file that exports two functions TwistedFlow calls at runtime: `tf_metadata()` (describes the nodes it provides) and `tf_execute()` (runs a single node with input values). The `twistedflow-plugin` crate hides the ABI behind a declarative `nodes!` macro — in practice, you only write the node logic.
+A custom node is a `.wasm` file that exports two functions TwistedFlow calls at runtime: `tf_metadata()` (describes the nodes it provides) and `tf_execute()` (runs a single node with input values). The `twistedflow-plugin` crate hides the ABI behind a declarative `nodes!` macro — in practice, you only write the node logic.
 
-Plugins run in a sandboxed [wasmtime](https://wasmtime.dev) instance with WASI preview 1. They can't access your host filesystem or network unless you explicitly import host callbacks (currently only `host::log`).
+Custom nodes run in a sandboxed [wasmtime](https://wasmtime.dev) instance with WASI preview 1. They can't access your host filesystem or network unless you explicitly import host callbacks (currently only `host::log`).
 
 ---
 
@@ -41,7 +42,7 @@ sudo mv twistedflow-cli /usr/local/bin/twistedflow
 
 Or build from source: `cargo build --release -p twistedflow-cli` in `apps/desktop/src-tauri/`.
 
-### Scaffold, build, run
+### Scaffold, build, run from CLI
 
 ```bash
 # Scaffold — creates ./my-plugin/ with Cargo.toml, src/lib.rs, README
@@ -55,7 +56,19 @@ cd my-plugin
 twistedflow plugin build
 ```
 
-Now open TwistedFlow desktop app or run `twistedflow run some-flow.json`. Your node appears in the palette under the "Utility" category.
+`twistedflow plugin build` installs into the nearest parent TwistedFlow project's `nodes/` directory by default.
+
+## Desktop authoring
+
+The desktop app exposes the same scaffold/build flow in the **Custom Nodes** tab:
+
+1. Open a project
+2. Open the **Custom Nodes** tab in the bottom workspace
+3. Click **New Node**
+4. Edit the generated Rust source in your editor
+5. Click **Build Plugin** on that node tile
+
+The desktop app writes source under `<project>/nodes-src/` and installs validated `.wasm` artifacts into `<project>/nodes/`.
 
 ---
 
@@ -191,7 +204,7 @@ Downstream nodes read these outputs via the pin keys you declared.
 
 ### `host::log(msg)`
 
-Print a message to the TwistedFlow console panel (desktop app) or stdout (CLI):
+Print a message to the TwistedFlow Console tab (desktop app) or stdout (CLI):
 
 ```rust
 use twistedflow_plugin::*;
@@ -270,22 +283,22 @@ For the curious. You don't need to understand this to write plugins.
 
 1. Build: `twistedflow plugin build`
 2. Either:
-   - Open the desktop app — the plugin auto-loads, drag nodes to the canvas
-   - Or run headless: `twistedflow-cli run some-flow.json` — plugin logs print to stdout
+   - Open the desktop app — the custom node appears in the palette for that project
+   - Or run headless: `twistedflow-cli run some-flow.json` — custom node logs print to stdout
 
-Plugins are loaded fresh on every flow run, so rebuilding + re-running picks up changes without restarting the app (though the palette may need a refresh — reopen the flow).
+Custom nodes are loaded fresh on every flow run. In the desktop app, rebuilding from the **Custom Nodes** tab refreshes the palette for the active project.
 
 ---
 
 ## Install locations
 
-Desktop projects discover plugins from one project-local directory:
+TwistedFlow discovers custom nodes from one project-local directory:
 
 | Path | Scope |
 |------|-------|
-| `<project>/nodes/` | Project-local — only for that project |
+| `<project>/nodes/` | Built/installed `.wasm` custom nodes for that project |
 
-Editable plugin source should live under `<project>/nodes-src/`. Built `.wasm`
+Editable source should live under `<project>/nodes-src/`. Built `.wasm`
 artifacts live under `<project>/nodes/`.
 
 `twistedflow plugin build` auto-picks the nearest parent directory containing
@@ -298,17 +311,17 @@ To override: `twistedflow plugin build --project /path/to/project` or
 
 ## Troubleshooting
 
-**Plugin doesn't appear in palette**
+**Custom node doesn't appear in palette**
 - Check the target: must be `wasm32-wasip1` (NOT `wasm32-wasi`, the old name)
-- Check the .wasm file exists in the active project's `nodes/` directory
+- Check the `.wasm` file exists in the active project's `nodes/` directory
 - Look in the console/terminal for `[wasm-plugin] failed to load` warnings
 
 **Missing required export 'tf_execute'**
 - You forgot the `nodes! { ... }` macro, or removed it during edits
 
-**Plugin logs not appearing**
+**Custom node logs not appearing**
 - Make sure `host::log` is actually reached (add a log at the top of `execute`)
-- In desktop, toggle the console panel with backtick (`` ` ``)
+- In desktop, open the **Console** tab or toggle it with backtick (`` ` ``)
 - In CLI, logs print to stdout with the `[plugin]` label
 
 **Pin data_type warning on load**

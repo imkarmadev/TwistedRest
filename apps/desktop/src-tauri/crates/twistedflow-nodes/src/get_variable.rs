@@ -1,10 +1,10 @@
 //! Get Variable node — reads a named runtime variable.
 //! Data node: resolved lazily. Returns error if variable was never set.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Get Variable",
@@ -52,9 +52,10 @@ impl Node for GetVariableNode {
                 }
                 None => {
                     // Variable was never set — runtime error
-                    ctx.emit_status(twistedflow_engine::node::StatusEvent::error(
-                        format!("Variable '{}' is undefined — no Set Variable wrote to it", var_name),
-                    ));
+                    ctx.emit_status(twistedflow_engine::node::StatusEvent::error(format!(
+                        "Variable '{}' is undefined — no Set Variable wrote to it",
+                        var_name
+                    )));
                     NodeResult::Data(None)
                 }
             }

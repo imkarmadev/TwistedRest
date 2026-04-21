@@ -6,11 +6,11 @@
 //!   HTTP Listen out:body ──→ Parse Body out:parsed ──→ downstream
 //!              out:headers ──→
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Parse Body",
@@ -26,10 +26,7 @@ impl Node for ParseBodyNode {
         ctx: NodeCtx<'a>,
     ) -> Pin<Box<dyn Future<Output = NodeResult> + Send + 'a>> {
         Box::pin(async move {
-            let body = ctx
-                .resolve_input("in:body")
-                .await
-                .unwrap_or(Value::Null);
+            let body = ctx.resolve_input("in:body").await.unwrap_or(Value::Null);
 
             let body_str = match &body {
                 Value::String(s) => s.clone(),
@@ -53,24 +50,20 @@ impl Node for ParseBodyNode {
             };
 
             let (parsed, actual_ct) = match content_type.as_str() {
-                "json" => {
-                    match serde_json::from_str::<Value>(&body_str) {
-                        Ok(v) => (v, "application/json".to_string()),
-                        Err(e) => {
-                            return NodeResult::Error {
-                                message: format!("Invalid JSON body: {}", e),
-                                raw_response: Some(Value::String(body_str)),
-                            };
-                        }
+                "json" => match serde_json::from_str::<Value>(&body_str) {
+                    Ok(v) => (v, "application/json".to_string()),
+                    Err(e) => {
+                        return NodeResult::Error {
+                            message: format!("Invalid JSON body: {}", e),
+                            raw_response: Some(Value::String(body_str)),
+                        };
                     }
-                }
+                },
                 "form" => {
                     let parsed = parse_form_urlencoded(&body_str);
                     (parsed, "application/x-www-form-urlencoded".to_string())
                 }
-                "text" => {
-                    (Value::String(body_str), "text/plain".to_string())
-                }
+                "text" => (Value::String(body_str), "text/plain".to_string()),
                 _ => {
                     // Auto-detect: try JSON first, then treat as text
                     if let Ok(v) = serde_json::from_str::<Value>(&body_str) {

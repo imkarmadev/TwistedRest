@@ -1,11 +1,11 @@
 //! Set Variable node — writes a named, typed runtime variable.
 //! Exec node: exec-in → exec-out, data input "in:value".
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Set Variable",
@@ -44,25 +44,31 @@ impl Node for SetVariableNode {
                 ctx.resolve_input("in:value").await.unwrap_or(Value::Null)
             } else {
                 // Read literal value from node config
-                let raw = ctx.node_data.get("value")
+                let raw = ctx
+                    .node_data
+                    .get("value")
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
-                let val_type = ctx.node_data.get("valueType")
+                let val_type = ctx
+                    .node_data
+                    .get("valueType")
                     .and_then(|v| v.as_str())
                     .unwrap_or("string");
                 if raw.is_empty() {
                     Value::Null
                 } else {
                     match val_type {
-                        "number" => raw.parse::<f64>()
+                        "number" => raw
+                            .parse::<f64>()
                             .map(|n| serde_json::json!(n))
                             .unwrap_or(Value::String(raw.to_string())),
                         "boolean" => match raw {
                             "true" | "1" => Value::Bool(true),
                             _ => Value::Bool(false),
                         },
-                        "json" => serde_json::from_str(raw)
-                            .unwrap_or(Value::String(raw.to_string())),
+                        "json" => {
+                            serde_json::from_str(raw).unwrap_or(Value::String(raw.to_string()))
+                        }
                         _ => Value::String(raw.to_string()),
                     }
                 }

@@ -1,9 +1,9 @@
 //! Start node — flow entry point. Does nothing; the executor marks it ok before chain starts.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Start",

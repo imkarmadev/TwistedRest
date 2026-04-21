@@ -6,11 +6,11 @@
 //!                              ├── exec-pass → Route → handlers (out:claims available)
 //!                              └── exec-fail → Send Response (401)
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 use base64::Engine;
 use hmac::{Hmac, Mac};
@@ -32,10 +32,7 @@ impl Node for VerifyAuthNode {
         ctx: NodeCtx<'a>,
     ) -> Pin<Box<dyn Future<Output = NodeResult> + Send + 'a>> {
         Box::pin(async move {
-            let headers = ctx
-                .resolve_input("in:headers")
-                .await
-                .unwrap_or(Value::Null);
+            let headers = ctx.resolve_input("in:headers").await.unwrap_or(Value::Null);
 
             let mode = ctx
                 .node_data
@@ -135,8 +132,7 @@ fn verify_basic(headers: &Value) -> Result<(Value, String), String> {
     let decoded = base64::engine::general_purpose::STANDARD
         .decode(encoded.as_bytes())
         .map_err(|e| format!("Invalid base64: {}", e))?;
-    let decoded_str =
-        String::from_utf8(decoded).map_err(|e| format!("Invalid UTF-8: {}", e))?;
+    let decoded_str = String::from_utf8(decoded).map_err(|e| format!("Invalid UTF-8: {}", e))?;
 
     let mut parts = decoded_str.splitn(2, ':');
     let username = parts.next().unwrap_or("").to_string();
@@ -149,10 +145,7 @@ fn verify_basic(headers: &Value) -> Result<(Value, String), String> {
 }
 
 /// API key: check a header against valid keys.
-async fn verify_api_key(
-    ctx: &NodeCtx<'_>,
-    headers: &Value,
-) -> Result<(Value, String), String> {
+async fn verify_api_key(ctx: &NodeCtx<'_>, headers: &Value) -> Result<(Value, String), String> {
     let header_name = ctx
         .node_data
         .get("apiKeyHeader")
@@ -197,10 +190,7 @@ async fn verify_api_key(
 }
 
 /// JWT (HS256): decode header.payload.signature, verify HMAC-SHA256.
-async fn verify_jwt(
-    ctx: &NodeCtx<'_>,
-    headers: &Value,
-) -> Result<(Value, String), String> {
+async fn verify_jwt(ctx: &NodeCtx<'_>, headers: &Value) -> Result<(Value, String), String> {
     let auth = get_auth_header(headers).ok_or("Missing Authorization header")?;
     let token = auth
         .strip_prefix("Bearer ")
@@ -247,10 +237,10 @@ async fn verify_jwt(
 
     // Decode payload
     let payload_bytes = base64_url_decode(payload_b64)?;
-    let payload_str =
-        String::from_utf8(payload_bytes).map_err(|e| format!("Invalid UTF-8 in JWT payload: {}", e))?;
-    let claims: Value =
-        serde_json::from_str(&payload_str).map_err(|e| format!("Invalid JSON in JWT payload: {}", e))?;
+    let payload_str = String::from_utf8(payload_bytes)
+        .map_err(|e| format!("Invalid UTF-8 in JWT payload: {}", e))?;
+    let claims: Value = serde_json::from_str(&payload_str)
+        .map_err(|e| format!("Invalid JSON in JWT payload: {}", e))?;
 
     // Check expiration if present
     if let Some(exp) = claims.get("exp").and_then(|v| v.as_u64()) {

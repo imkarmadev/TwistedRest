@@ -1,11 +1,11 @@
 //! Emit Event node — dispatches a named event to all matching OnEvent listeners.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult, StatusEvent};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult, StatusEvent};
+use twistedflow_macros::node;
 
 #[node(
     name = "Emit Event",
@@ -55,11 +55,7 @@ impl Node for EmitEventNode {
                 .values()
                 .filter(|n| {
                     n.node_type.as_deref() == Some("onEvent")
-                        && n.data
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            == event_name
+                        && n.data.get("name").and_then(|v| v.as_str()).unwrap_or("") == event_name
                 })
                 .map(|n| n.id.clone())
                 .collect();
@@ -79,9 +75,7 @@ impl Node for EmitEventNode {
                 // Mark listener as ok so the frontend shows it ran
                 (ctx.opts.on_status)(
                     listener_id,
-                    StatusEvent::ok(Some(
-                        serde_json::to_value(&payload).unwrap_or(Value::Null),
-                    )),
+                    StatusEvent::ok(Some(serde_json::to_value(&payload).unwrap_or(Value::Null))),
                 );
 
                 // Spawn the listener's exec-out chain in the background
@@ -92,10 +86,7 @@ impl Node for EmitEventNode {
 
             // Build output: payload fields + listenerCount
             let mut output_map = payload.clone();
-            output_map.insert(
-                "listenerCount".into(),
-                json!(listener_count),
-            );
+            output_map.insert("listenerCount".into(), json!(listener_count));
             let output_val = serde_json::to_value(&output_map).ok();
 
             NodeResult::Continue { output: output_val }

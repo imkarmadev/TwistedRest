@@ -5,11 +5,11 @@
 //!
 //!   Env Var (token) ──→ Set Headers out:headers ──→ Send Response in:headers
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::Value;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Set Headers",
@@ -42,10 +42,7 @@ impl Node for SetHeadersNode {
             // Apply configured headers with template rendering
             if let Some(Value::Array(arr)) = ctx.node_data.get("headers") {
                 for h in arr {
-                    let enabled = h
-                        .get("enabled")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(true);
+                    let enabled = h.get("enabled").and_then(|v| v.as_bool()).unwrap_or(true);
                     if !enabled {
                         continue;
                     }
@@ -77,13 +74,10 @@ impl Node for SetHeadersNode {
 }
 
 /// Simple #{name} template renderer using resolved input values.
-fn render_template(
-    template: &str,
-    inputs: &std::collections::HashMap<String, Value>,
-) -> String {
+fn render_template(template: &str, inputs: &std::collections::HashMap<String, Value>) -> String {
     let mut result = template.to_string();
     for (key, val) in inputs {
-        let placeholder = format!("#{{{}}}",  key);
+        let placeholder = format!("#{{{}}}", key);
         let replacement = match val {
             Value::String(s) => s.clone(),
             Value::Null => String::new(),

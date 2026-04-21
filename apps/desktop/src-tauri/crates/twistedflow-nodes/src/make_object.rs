@@ -5,11 +5,11 @@
 //! resolved and the result inserted into the output object. Missing pins
 //! resolve to `null`.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{Map, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Make Object",
@@ -41,10 +41,7 @@ impl Node for MakeObjectNode {
                 };
 
                 let handle = format!("in:{}", key);
-                let val = ctx
-                    .resolve_input(&handle)
-                    .await
-                    .unwrap_or(Value::Null);
+                let val = ctx.resolve_input(&handle).await.unwrap_or(Value::Null);
 
                 obj.insert(key, val);
             }

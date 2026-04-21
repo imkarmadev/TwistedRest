@@ -3,12 +3,12 @@
 //! Exec node. Prints a question to stderr, reads a line from stdin.
 //! Supports modes: text (default), confirm (y/n → bool), password (hidden).
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Prompt",
@@ -53,7 +53,7 @@ impl Node for PromptNode {
             };
 
             let result = tokio::task::spawn_blocking(move || {
-                use std::io::{self, Write, BufRead};
+                use std::io::{self, BufRead, Write};
 
                 match mode.as_str() {
                     "confirm" => {
@@ -73,7 +73,11 @@ impl Node for PromptNode {
                         // enough for CLI tools.
                         let mut line = String::new();
                         io::stdin().lock().read_line(&mut line).ok();
-                        Value::String(line.trim_end_matches('\n').trim_end_matches('\r').to_string())
+                        Value::String(
+                            line.trim_end_matches('\n')
+                                .trim_end_matches('\r')
+                                .to_string(),
+                        )
                     }
                     _ => {
                         // text mode
@@ -85,7 +89,10 @@ impl Node for PromptNode {
                         io::stderr().flush().ok();
                         let mut line = String::new();
                         io::stdin().lock().read_line(&mut line).ok();
-                        let trimmed = line.trim_end_matches('\n').trim_end_matches('\r').to_string();
+                        let trimmed = line
+                            .trim_end_matches('\n')
+                            .trim_end_matches('\r')
+                            .to_string();
                         if trimmed.is_empty() && !default_value.is_empty() {
                             Value::String(default_value)
                         } else {

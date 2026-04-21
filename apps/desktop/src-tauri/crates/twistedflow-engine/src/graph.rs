@@ -74,10 +74,7 @@ impl GraphIndex {
             match kind {
                 Some(EdgeKind::Exec) => {
                     let src_handle = edge.source_handle.clone().unwrap_or_default();
-                    exec_edges.insert(
-                        (edge.source.clone(), src_handle),
-                        edge.target.clone(),
-                    );
+                    exec_edges.insert((edge.source.clone(), src_handle), edge.target.clone());
                 }
                 Some(EdgeKind::Data) => {
                     let tgt_handle = edge.target_handle.clone().unwrap_or_default();
@@ -91,16 +88,17 @@ impl GraphIndex {
                     // Legacy edges without explicit kind — treat as exec if handle looks exec-like
                     let src_handle = edge.source_handle.clone().unwrap_or_default();
                     if src_handle.starts_with("exec") || src_handle.is_empty() {
-                        exec_edges.insert(
-                            (edge.source.clone(), src_handle),
-                            edge.target.clone(),
-                        );
+                        exec_edges.insert((edge.source.clone(), src_handle), edge.target.clone());
                     }
                 }
             }
         }
 
-        Self { nodes, exec_edges, data_edges_in }
+        Self {
+            nodes,
+            exec_edges,
+            data_edges_in,
+        }
     }
 
     /// Find the next node along an exec edge from (source_id, handle).

@@ -3,12 +3,12 @@
 //! Pure data node. Algorithm configured via node_data.algorithm.
 //! For HMAC, reads the key from the in:key pin or node_data.key.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Hash",
@@ -43,8 +43,8 @@ impl Node for HashNode {
                 .and_then(|v| v.as_str())
                 .unwrap_or("hex");
 
-            use sha2::{Sha256, Sha512, Digest};
             use md5::Md5;
+            use sha2::{Digest, Sha256, Sha512};
 
             let hash_bytes: Vec<u8> = match algorithm {
                 "sha256" => {
@@ -69,14 +69,13 @@ impl Node for HashNode {
                     let key = ctx.resolve_input("in:key").await;
                     let key_bytes = match &key {
                         Some(Value::String(s)) => s.as_bytes().to_vec(),
-                        _ => {
-                            ctx.node_data
-                                .get("key")
-                                .and_then(|v| v.as_str())
-                                .unwrap_or("")
-                                .as_bytes()
-                                .to_vec()
-                        }
+                        _ => ctx
+                            .node_data
+                            .get("key")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .as_bytes()
+                            .to_vec(),
                     };
 
                     let mut mac = HmacSha256::new_from_slice(&key_bytes)
@@ -106,8 +105,11 @@ impl Node for HashNode {
             out.insert("hash".into(), Value::String(hash_string));
             ctx.set_outputs(out).await;
 
-            NodeResult::Data(ctx.get_outputs(ctx.node_id).await
-                .map(|o| serde_json::to_value(o).unwrap_or(Value::Null)))
+            NodeResult::Data(
+                ctx.get_outputs(ctx.node_id)
+                    .await
+                    .map(|o| serde_json::to_value(o).unwrap_or(Value::Null)),
+            )
         })
     }
 }

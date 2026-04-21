@@ -1,5 +1,5 @@
 /*
- * The chrome (sidebar, inspector, title bar) is positioned absolutely on
+ * The chrome (top bar and inspector) is positioned absolutely on
  * top of the canvas — not as flex siblings — so backdrop-filter on each
  * panel actually has the canvas content underneath to blur. That's what
  * gives the liquid glass effect: nodes near the screen edges are visible
@@ -50,7 +50,7 @@
 
 .updateBanner {
   position: absolute;
-  top: 8px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;

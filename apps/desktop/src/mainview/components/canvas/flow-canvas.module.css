@@ -7,7 +7,7 @@
 /* ── Drill-down breadcrumb (collapsed-group focused view) ──────────────── */
 .breadcrumb {
   position: absolute;
-  top: 44px;
+  top: 56px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 35;
@@ -66,48 +66,11 @@
   color: var(--text-primary);
 }
 
-.toolbar {
-  position: absolute;
-  top: 44px;
-  left: calc(var(--sidebar-w) + 12px);
-  z-index: 30;
-  display: flex;
-  gap: 6px;
-}
-
-.toolBtn {
-  padding: 7px 14px;
-  /* Floating capsule — plain wash, no backdrop-filter (single-layer rule) */
-  background: var(--material-pane-hi);
-  color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-sm);
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow:
-    var(--glass-highlight-strong),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    0 6px 18px rgba(0, 0, 0, 0.4);
-  transition: color 120ms ease, border-color 120ms ease;
-}
-
-.toolBtn:hover {
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.toolBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* ── Build progress overlay ──────────────────────────────────────── */
 .buildOverlay {
   position: absolute;
   bottom: 60px;
-  left: calc(var(--sidebar-w) + 12px);
+  left: 16px;
   z-index: 90;
 }
 
@@ -188,16 +151,16 @@
   border-radius: var(--radius-sm);
   overflow: hidden;
   box-shadow: var(--glass-highlight), 0 8px 20px rgba(0, 0, 0, 0.35);
-  /* Top-left, just below the toolbar. Stays clear of the console panel
+  /* Top-left, just below the compact top chrome. Stays clear of the console panel
      at the bottom regardless of whether it's open or closed. */
-  margin-left: calc(var(--sidebar-w) + 12px) !important;
-  margin-top: 88px !important;
+  margin-left: 16px !important;
+  margin-top: 56px !important;
 }
 
 .spinner {
   position: absolute;
-  top: 230px;
-  left: calc(var(--sidebar-w) + 18px);
+  top: 164px;
+  left: 22px;
   width: 14px;
   height: 14px;
   border: 2px solid rgba(255, 255, 255, 0.08);

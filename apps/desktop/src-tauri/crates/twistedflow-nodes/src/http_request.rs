@@ -1,12 +1,14 @@
 //! HTTP Request node — resolves input pins, renders templates, calls reqwest.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{ExecAuth, HeaderEntry, HttpRequest, HttpResponse, Node, NodeCtx, NodeResult};
-use twistedflow_engine::render_template;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{
+    ExecAuth, HeaderEntry, HttpRequest, HttpResponse, Node, NodeCtx, NodeResult,
+};
+use twistedflow_engine::render_template;
+use twistedflow_macros::node;
 
 #[node(
     name = "HTTP Request",
@@ -33,7 +35,12 @@ impl Node for HttpRequestNode {
                 .env_base_url
                 .as_deref()
                 .filter(|s| !s.is_empty())
-                .or_else(|| exec_ctx.project_base_url.as_deref().filter(|s| !s.is_empty()))
+                .or_else(|| {
+                    exec_ctx
+                        .project_base_url
+                        .as_deref()
+                        .filter(|s| !s.is_empty())
+                })
                 .unwrap_or("");
 
             let url_template = data.get("url").and_then(|v| v.as_str()).unwrap_or("");
@@ -51,8 +58,16 @@ impl Node for HttpRequestNode {
             // Step 4: three-layer header merge (project → env → node)
             let mut header_map: HashMap<String, String> = HashMap::new();
 
-            apply_header_layer(&mut header_map, exec_ctx.project_headers.as_deref(), &input_values);
-            apply_header_layer(&mut header_map, exec_ctx.env_headers.as_deref(), &input_values);
+            apply_header_layer(
+                &mut header_map,
+                exec_ctx.project_headers.as_deref(),
+                &input_values,
+            );
+            apply_header_layer(
+                &mut header_map,
+                exec_ctx.env_headers.as_deref(),
+                &input_values,
+            );
 
             // Node-level headers
             if let Some(node_headers) = data.get("headers").and_then(|v| v.as_array()) {
@@ -115,8 +130,7 @@ impl Node for HttpRequestNode {
             let parsed: Value = if response.body.is_empty() {
                 Value::Null
             } else {
-                serde_json::from_str(&response.body)
-                    .unwrap_or(Value::String(response.body.clone()))
+                serde_json::from_str(&response.body).unwrap_or(Value::String(response.body.clone()))
             };
 
             // Step 9: project to output pins
@@ -138,14 +152,12 @@ impl Node for HttpRequestNode {
             // Fixed output pins — inserted AFTER body fields so they always win
             out.insert("status".into(), json!(response.status));
 
-            let resp_headers: HashMap<String, String> =
-                response.headers.iter().cloned().collect();
+            let resp_headers: HashMap<String, String> = response.headers.iter().cloned().collect();
             out.insert("responseHeaders".into(), json!(resp_headers));
 
             out.insert("responseTime".into(), json!(response_time_ms));
 
-            let header_map_for_req: HashMap<String, String> =
-                headers.iter().cloned().collect();
+            let header_map_for_req: HashMap<String, String> = headers.iter().cloned().collect();
             out.insert(
                 "_request".into(),
                 json!({
@@ -195,8 +207,8 @@ fn apply_auth(auth: &ExecAuth, headers: &mut HashMap<String, String>, url: &mut 
             if let Some(user) = &auth.basic_username {
                 use base64::Engine;
                 let pass = auth.basic_password.as_deref().unwrap_or("");
-                let encoded = base64::engine::general_purpose::STANDARD
-                    .encode(format!("{}:{}", user, pass));
+                let encoded =
+                    base64::engine::general_purpose::STANDARD.encode(format!("{}:{}", user, pass));
                 headers.insert("Authorization".into(), format!("Basic {}", encoded));
             }
         }
@@ -221,10 +233,7 @@ fn apply_auth(auth: &ExecAuth, headers: &mut HashMap<String, String>, url: &mut 
 }
 
 /// Execute an HTTP request via reqwest and return a structured response.
-async fn exec_http(
-    client: &reqwest::Client,
-    req: &HttpRequest,
-) -> Result<HttpResponse, String> {
+async fn exec_http(client: &reqwest::Client, req: &HttpRequest) -> Result<HttpResponse, String> {
     let method: reqwest::Method = req
         .method
         .parse()
@@ -254,7 +263,11 @@ async fn exec_http(
         .await
         .map_err(|e| format!("Failed to read response body: {}", e))?;
 
-    Ok(HttpResponse { status, headers, body })
+    Ok(HttpResponse {
+        status,
+        headers,
+        body,
+    })
 }
 
 /// Combine a base URL with a (potentially relative) node URL.

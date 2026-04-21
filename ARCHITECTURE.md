@@ -22,32 +22,38 @@ TwistedFlow is a visual flow engine: users wire nodes on a canvas in a desktop a
 │                         └──────────────────────┘ │
 └──────────────────────────────────────────────────┘
 
+┌──────────────────────────────────────────────────────────────┐
+│                      Shared Rust crates                      │
+│ twistedflow-engine | twistedflow-builder | twistedflow-project │
+│                   twistedflow-plugin-dev                     │
+└──────────────────────────────────────────────────────────────┘
+
 ┌──────────────────────────────────────────────────┐
 │              CLI (twistedflow-cli)                │
-│  twistedflow-cli run  ──► twistedflow-engine     │
-│  twistedflow-cli build ──► compile to binary     │
+│  run      ──► shared runtime/project logic       │
+│  build    ──► twistedflow-builder                │
+│  plugin   ──► twistedflow-plugin-dev             │
 └──────────────────────────────────────────────────┘
 ```
 
-The engine crate has **zero Tauri dependency** — it's shared between the desktop app and the CLI.
+The engine crate has **zero Tauri dependency**. The desktop app and CLI both call the same shared Rust logic rather than shelling through each other.
 
 ---
 
 ## Rust Crates
 
-All Rust code lives under `apps/desktop/src-tauri/`. The workspace contains 6 members:
+All Rust code lives under `apps/desktop/src-tauri/`. The workspace contains 8 members:
 
 ### `twistedflow` (the Tauri app)
 
-Entry point for the desktop app. Thin shell that wires Tauri to the engine.
+Entry point for the desktop app. Thin shell that wires Tauri to shared project/runtime/build logic.
 
 | File | Role |
 |------|------|
 | `src/project.rs` | Folder-based project I/O (create, open, save flows, manage .env files) |
-| `src/executor_commands.rs` | Tauri commands: `run_flow`, `stop_flow`. Bridges engine to frontend via events. |
+| `src/executor_commands.rs` | Tauri commands: `run_flow`, `stop_flow`, `list_node_types`, `build_flow`. Bridges engine to frontend via events. |
+| `src/custom_nodes.rs` | Tauri commands for project-local custom node scaffold/build/open |
 | `src/http.rs` | reqwest HTTP transport + OAuth2 token management |
-| `src/commands.rs` | Other Tauri commands (file dialogs, updates, etc.) |
-| `src/db.rs` | Legacy — was SQLite, now unused but kept for migration reference |
 
 ### `twistedflow-engine`
 
@@ -70,7 +76,7 @@ The heart. Pure async Rust executor with no framework dependency.
 
 ### `twistedflow-nodes`
 
-23 built-in node implementations. Each node is a struct with the `#[node]` attribute macro:
+Built-in node implementations. Each node is a struct with the `#[node]` attribute macro:
 
 ```rust
 #[node(
@@ -99,10 +105,31 @@ The `#[node]` proc macro crate. Parses `name`, `type_id`, `category`, `descripti
 
 ### `twistedflow-cli`
 
-CLI binary with two subcommands:
+CLI binary with three subcommand groups:
 
 - **`run`** — loads a `.flow.json`, builds the graph, runs the executor headlessly. Supports `--env KEY=VAL`, `--base-url`, `--quiet`, `--plugins`.
-- **`build`** — compiles a project (folder with `twistedflow.toml`) into a standalone binary. Embeds the flow JSON + env vars, generates a `main.rs` wrapper, runs `cargo build`.
+- **`build`** — compiles a project (folder with `twistedflow.toml`) into a standalone binary via `twistedflow-builder`.
+- **`plugin`** — scaffolds and builds custom node crates via `twistedflow-plugin-dev`.
+
+### `twistedflow-builder`
+
+Shared `flow -> standalone binary` build logic used by both the desktop app and CLI.
+
+### `twistedflow-project`
+
+Shared project/runtime helpers:
+- validate/find project roots
+- ensure `flows/`, `nodes/`, and `nodes-src/` exist
+- load runtime node registry from built-ins + `<project>/nodes` + subflows
+- list project-local custom node assets
+
+### `twistedflow-plugin-dev`
+
+Shared custom-node authoring helpers used by both the desktop app and CLI:
+- scaffold Rust/WASM custom node crates
+- extract the guest SDK when needed
+- build + validate `.wasm`
+- install to `<project>/nodes/`
 
 ### `twistedflow-plugin`
 
@@ -117,7 +144,7 @@ Guest SDK for WASM plugin authors. Provides the declarative `nodes!` macro, type
 1. Frontend calls `invoke("run_flow")` with flow JSON + context (env vars, base URL, headers, auth)
 2. Rust deserializes into `FlowFile`, builds `GraphIndex`
 3. `build_registry()` collects all `#[node]` implementations via `inventory`
-4. WASM plugins loaded from disk, added to registry
+4. Project-local custom nodes loaded from `{project}/nodes/`, added to registry
 5. **Variable pre-seeding**: if the flow declares a `variables` array, each variable's default value is written into the runtime variable store before execution begins
 6. Executor finds Start node, marks all nodes as pending
 7. **Chain walking**: follows exec edges sequentially. At each node:
@@ -152,15 +179,15 @@ Some nodes (HTTP Listen) need to stay alive beyond their exec chain. These retur
 
 ### React App (`apps/desktop/src/mainview/`)
 
-Single-page app rendered in Tauri's webview. No router — it's a single canvas view with overlays.
+Single-page app rendered in Tauri's webview. No router — it's a single canvas-first workspace with overlays.
 
 | Directory | Role |
 |-----------|------|
 | `components/canvas/` | React Flow canvas, node components (one `.tsx` per node type), edge renderers, palette |
 | `components/inspector/` | Right-side property editor — context-sensitive per selected node type |
-| `components/console/` | Bottom log panel, toggle with backtick |
+| `components/workspace/` | Bottom workspace tabs for Flows, Subflows, Custom Nodes, Console, Problems |
 | `components/settings/` | Project settings modal (name, environments) |
-| `components/layout/` | Sidebar (flow list), title bar |
+| `components/layout/` | Top project bar / drag region |
 | `components/editor/` | Code editor component |
 | `lib/` | Shared logic — pin system, schema resolution, node registry, etc. |
 
@@ -180,7 +207,8 @@ Schema resolution (`lib/schema-resolution.ts`) walks backward through the graph 
 - `invoke("stop_flow")` — cancel via CancellationToken
 - `listen("flow:status")` — per-node status updates (pending/running/ok/error)
 - `listen("flow:log")` — log entries from Log/Print nodes
-- `invoke("save_flow", { ... })` / `invoke("load_project", { ... })` — project I/O
+- `invoke("save_flow", { ... })`, `invoke("open_project", { ... })`, `invoke("list_flows", { ... })` — project I/O
+- `invoke("create_custom_node_source")`, `invoke("build_custom_node")` — desktop custom-node authoring
 
 ### JS Packages
 
@@ -202,27 +230,32 @@ my-project/
 ├── flows/
 │   ├── main.flow.json     # flow definitions (nodes, edges, viewport)
 │   └── health-check.flow.json
-└── nodes/                 # project-scoped WASM plugins
-    └── my-custom-node.wasm
+├── nodes/                 # built/installed project-scoped .wasm custom nodes
+│   └── my-custom-node.wasm
+└── nodes-src/             # optional editable Rust source for those nodes
+    └── my-custom-node/
+        ├── Cargo.toml
+        └── src/lib.rs
 ```
 
 - **Environments** = `.env` files in standard dotenv format
 - **Flows** = JSON files with nodes array, edges array, optional `variables` array (typed declarations with defaults), and viewport position
-- **Plugins** = `.wasm` files in `nodes/` (project-scoped) or `~/.twistedflow/plugins/` (global)
+- **Custom nodes** = `.wasm` files in `nodes/`, with optional editable Rust sources in `nodes-src/`
 
 ---
 
 ## WASM Plugin System
 
-Plugins extend TwistedFlow with custom node types distributed as `.wasm` files.
+Custom nodes extend TwistedFlow with custom node types distributed as `.wasm` files.
 
 **Loading order:**
-1. Global plugins from `~/.twistedflow/plugins/`
-2. Project plugins from `{project}/nodes/`
+1. Built-in nodes from `twistedflow-nodes`
+2. Project custom nodes from `{project}/nodes/`
+3. Project subflows from `{project}/flows/*.flow.json` with `kind = "subflow"`
 
 **Runtime:** wasmtime 29. The engine's `wasm_host.rs` loads each `.wasm`, wraps it as a `Box<dyn Node>`, and adds it to the registry alongside built-in nodes.
 
-**Writing plugins:** Use the `twistedflow-plugin` guest SDK with its declarative `nodes!` macro. Target `wasm32-wasip1`. Either run `twistedflow plugin new <name>` to scaffold + `twistedflow plugin build` to compile and install, or do it by hand with `cargo build --target wasm32-wasip1 --release` and manual copy. Host callbacks available: `host::log` routes to the console panel. See [docs/plugins.md](docs/plugins.md) for the full guide.
+**Writing custom nodes:** Use the `twistedflow-plugin` guest SDK with its declarative `nodes!` macro. Target `wasm32-wasip1`. Either use the desktop app's **Custom Nodes** tab or run `twistedflow plugin new <name>` + `twistedflow plugin build`. Both call the same shared Rust implementation. Host callbacks available: `host::log` routes to the Console tab. See [docs/plugins.md](docs/plugins.md) for the full guide.
 
 ---
 
@@ -249,7 +282,7 @@ GitHub Actions picks up the tag and builds:
 
 ### CLI Binary
 
-The CLI is built as part of the Cargo workspace. `twistedflow-cli build` compiles flows into standalone binaries by generating a wrapper `main.rs` that embeds the flow JSON + env vars and links against `twistedflow-engine`.
+The CLI is built as part of the Cargo workspace. `twistedflow-cli build` is a thin wrapper over `twistedflow-builder`, which compiles flows into standalone binaries by generating a wrapper `main.rs` that embeds the flow JSON + env vars and links against `twistedflow-engine`.
 
 ---
 

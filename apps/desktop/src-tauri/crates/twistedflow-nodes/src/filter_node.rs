@@ -7,12 +7,12 @@
 //!   - Truthiness: just "item.active" checks truthy
 //!   - Contains: item.tags contains "urgent"
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Filter",
@@ -50,10 +50,7 @@ impl Node for FilterNode {
 
             if expression.is_empty() {
                 // No expression = pass all non-null/non-false items (truthiness)
-                let filtered: Vec<Value> = items
-                    .into_iter()
-                    .filter(|v| is_truthy(v))
-                    .collect();
+                let filtered: Vec<Value> = items.into_iter().filter(|v| is_truthy(v)).collect();
                 let count = filtered.len();
                 let mut out: HashMap<String, Value> = HashMap::new();
                 out.insert("result".into(), Value::Array(filtered));
@@ -129,7 +126,9 @@ fn resolve_path(path: &str, item: &Value) -> Value {
     let mut current = item.clone();
     for part in path.split('.') {
         let part = part.trim();
-        if part.is_empty() { continue; }
+        if part.is_empty() {
+            continue;
+        }
         match &current {
             Value::Object(map) => {
                 current = map.get(part).cloned().unwrap_or(Value::Null);

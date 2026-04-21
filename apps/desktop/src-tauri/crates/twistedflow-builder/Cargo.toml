@@ -1,0 +1,14 @@
+[package]
+name = "twistedflow-builder"
+version = "0.1.0"
+edition = "2021"
+description = "Shared flow build logic for TwistedFlow desktop and CLI"
+
+[lib]
+name = "twistedflow_builder"
+path = "src/lib.rs"
+
+[dependencies]
+serde_json = { workspace = true }
+tempfile = "3"
+twistedflow-project = { path = "../twistedflow-project" }

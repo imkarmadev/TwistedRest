@@ -55,16 +55,36 @@ pub struct StatusEvent {
 
 impl StatusEvent {
     pub fn pending() -> Self {
-        Self { status: "pending".into(), output: None, error: None, raw_response: None }
+        Self {
+            status: "pending".into(),
+            output: None,
+            error: None,
+            raw_response: None,
+        }
     }
     pub fn running() -> Self {
-        Self { status: "running".into(), output: None, error: None, raw_response: None }
+        Self {
+            status: "running".into(),
+            output: None,
+            error: None,
+            raw_response: None,
+        }
     }
     pub fn ok(output: Option<Value>) -> Self {
-        Self { status: "ok".into(), output, error: None, raw_response: None }
+        Self {
+            status: "ok".into(),
+            output,
+            error: None,
+            raw_response: None,
+        }
     }
     pub fn error(msg: impl Into<String>) -> Self {
-        Self { status: "error".into(), output: None, error: Some(msg.into()), raw_response: None }
+        Self {
+            status: "error".into(),
+            output: None,
+            error: Some(msg.into()),
+            raw_response: None,
+        }
     }
     pub fn schema_error(msg: impl Into<String>, raw: Value) -> Self {
         Self {
@@ -110,7 +130,9 @@ pub struct HeaderEntry {
     pub enabled: bool,
 }
 
-fn default_true() -> bool { true }
+fn default_true() -> bool {
+    true
+}
 
 /// Per-run execution context from the frontend.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -203,9 +225,15 @@ pub enum NodeResult {
     /// Continue to "exec-out" (default for most exec nodes).
     Continue { output: Option<Value> },
     /// Fire a specific exec handle (e.g., Match → "exec-case:0").
-    Branch { handle: String, output: Option<Value> },
+    Branch {
+        handle: String,
+        output: Option<Value>,
+    },
     /// Error — halt the chain.
-    Error { message: String, raw_response: Option<Value> },
+    Error {
+        message: String,
+        raw_response: Option<Value>,
+    },
     /// Pure data node — resolved lazily, returns a value.
     Data(Option<Value>),
     /// Long-running process node. The node spawned its own background task
@@ -232,11 +260,14 @@ impl<'a> NodeCtx<'a> {
         target_handle: &'a str,
     ) -> Pin<Box<dyn Future<Output = Option<Value>> + Send + 'a>> {
         Box::pin(async move {
-            if let Some((src_id, src_handle)) =
-                self.index.data_source(self.node_id, target_handle)
+            if let Some((src_id, src_handle)) = self.index.data_source(self.node_id, target_handle)
             {
                 crate::executor::resolve_pin_value(
-                    src_id, src_handle, self.opts, self.outputs, self.tap_logs,
+                    src_id,
+                    src_handle,
+                    self.opts,
+                    self.outputs,
+                    self.tap_logs,
                 )
                 .await
             } else {
@@ -258,7 +289,11 @@ impl<'a> NodeCtx<'a> {
                 }
                 let pin_name = &target_handle[3..];
                 if let Some(val) = crate::executor::resolve_pin_value(
-                    src_id, src_handle, self.opts, self.outputs, self.tap_logs,
+                    src_id,
+                    src_handle,
+                    self.opts,
+                    self.outputs,
+                    self.tap_logs,
                 )
                 .await
                 {
@@ -379,11 +414,7 @@ impl<'a> NodeCtx<'a> {
                 .values()
                 .filter(|n| {
                     n.node_type.as_deref() == Some("onEvent")
-                        && n.data
-                            .get("name")
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("")
-                            == event_name
+                        && n.data.get("name").and_then(|v| v.as_str()).unwrap_or("") == event_name
                 })
                 .map(|n| n.id.clone())
                 .collect();
@@ -399,9 +430,7 @@ impl<'a> NodeCtx<'a> {
                 }
                 (self.opts.on_status)(
                     listener_id,
-                    StatusEvent::ok(Some(
-                        serde_json::to_value(&payload).unwrap_or(Value::Null),
-                    )),
+                    StatusEvent::ok(Some(serde_json::to_value(&payload).unwrap_or(Value::Null))),
                 );
 
                 if let Some(next_id) = self.index.next_exec(listener_id, "exec-out") {

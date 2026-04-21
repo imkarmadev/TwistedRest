@@ -3,10 +3,10 @@
 //! Pre-seeded by the executor from `ExecContext::env_vars` before the chain
 //! starts. Missing keys return null (not an error — env vars are optional config).
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Env Var",

@@ -8,11 +8,11 @@
 //!
 //! The `out:corsHeaders` output provides headers to merge into every response.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "CORS",
@@ -34,10 +34,7 @@ impl Node for CorsNode {
                 .and_then(|v| v.as_str().map(|s| s.to_uppercase()))
                 .unwrap_or_default();
 
-            let headers = ctx
-                .resolve_input("in:headers")
-                .await
-                .unwrap_or(Value::Null);
+            let headers = ctx.resolve_input("in:headers").await.unwrap_or(Value::Null);
 
             // Read config
             let allow_origins = ctx

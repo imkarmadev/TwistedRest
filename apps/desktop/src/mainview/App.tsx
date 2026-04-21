@@ -1,5 +1,5 @@
 /**
- * Root layout — title bar, sidebar (project + flow tree), canvas, inspector.
+ * Root layout — top project bar, canvas, inspector, bottom workspace.
  *
  * Selection model:
  *   - The canvas owns the React Flow node list.
@@ -23,16 +23,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Node } from "@xyflow/react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { TitleBar } from "./components/layout/title-bar";
-import { Sidebar } from "./components/layout/sidebar";
+import { ProjectBar } from "./components/layout/project-bar";
 import { FlowCanvas } from "./components/canvas/flow-canvas";
 import { InspectorPanel } from "./components/inspector/inspector-panel";
 import { ProjectSettingsModal } from "./components/settings/project-settings-modal";
+import {
+  BottomWorkspace,
+  type BottomWorkspaceTabId,
+} from "./components/workspace/bottom-workspace";
 import type { DataType } from "@twistedflow/core";
 import type { FlowVariable } from "./lib/variables-context";
 import type { Interface } from "./lib/flow-interface-context";
 import { ConsoleContext, type ConsoleEntry } from "./lib/console-context";
-import { ConsolePanel } from "./components/console/console-panel";
 import { checkForUpdate } from "./lib/update-checker";
 import s from "./App.module.css";
 
@@ -58,6 +60,7 @@ export default function App() {
 
   // ── Flows ────────────────────────────────────────────────────────
   const [activeFlowFilename, setActiveFlowFilename] = useState<string | null>(null);
+  const [nodeCatalogVersion, setNodeCatalogVersion] = useState(0);
 
   // ── Environments ─────────────────────────────────────────────────
   const [environments, setEnvironments] = useState<ProjectEnvironment[]>([]);
@@ -140,9 +143,9 @@ export default function App() {
     [],
   );
 
-  // ── Console panel ─────────────────────────────────────────────────
+  // ── Bottom workspace / console ────────────────────────────────────
   const [consoleEntries, setConsoleEntries] = useState<ConsoleEntry[]>([]);
-  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<BottomWorkspaceTabId | null>(null);
 
   const consoleAppend = useCallback(
     (entry: Omit<ConsoleEntry, "id" | "timestamp">) => {
@@ -154,14 +157,18 @@ export default function App() {
     [],
   );
   const consoleClear = useCallback(() => setConsoleEntries([]), []);
-  const consoleToggle = useCallback(() => setConsoleOpen((v) => !v), []);
-  const consoleOpenFn = useCallback(() => setConsoleOpen(true), []);
-  const consoleCloseFn = useCallback(() => setConsoleOpen(false), []);
+  const consoleToggle = useCallback(() => {
+    setActiveWorkspaceTab((prev) => (prev === "console" ? null : "console"));
+  }, []);
+  const consoleOpenFn = useCallback(() => setActiveWorkspaceTab("console"), []);
+  const consoleCloseFn = useCallback(() => {
+    setActiveWorkspaceTab((prev) => (prev === "console" ? null : prev));
+  }, []);
 
   const consoleContextValue = useMemo(
     () => ({
       entries: consoleEntries,
-      isOpen: consoleOpen,
+      isOpen: activeWorkspaceTab === "console",
       toggle: consoleToggle,
       open: consoleOpenFn,
       close: consoleCloseFn,
@@ -170,7 +177,7 @@ export default function App() {
     }),
     [
       consoleEntries,
-      consoleOpen,
+      activeWorkspaceTab,
       consoleToggle,
       consoleOpenFn,
       consoleCloseFn,
@@ -189,6 +196,8 @@ export default function App() {
   // ── Canvas imperative handles ─────────────────────────────────────
   const updateNodeDataRef = useRef<(id: string, data: Record<string, unknown>) => void>(() => {});
   const deleteNodeRef = useRef<(id: string) => void>(() => {});
+  const openPaletteRef = useRef<() => void>(() => {});
+  const buildFlowRef = useRef<() => void>(() => {});
   const getInputTypeRef = useRef<(nodeId: string, inputPinId: string) => DataType>(
     () => "unknown",
   );
@@ -203,6 +212,12 @@ export default function App() {
   );
   const registerDeleteNode = useCallback((fn: (id: string) => void) => {
     deleteNodeRef.current = fn;
+  }, []);
+  const registerOpenPalette = useCallback((fn: () => void) => {
+    openPaletteRef.current = fn;
+  }, []);
+  const registerBuildFlow = useCallback((fn: () => void) => {
+    buildFlowRef.current = fn;
   }, []);
   const registerGetInputType = useCallback(
     (fn: (nodeId: string, inputPinId: string) => DataType) => {
@@ -246,6 +261,7 @@ export default function App() {
       setProjectName(null);
       setEnvironments([]);
       setActiveFlowFilename(null);
+      setActiveWorkspaceTab(null);
       setSelectedNode(null);
       return;
     }
@@ -305,11 +321,16 @@ export default function App() {
     setFlowInterfaceState(null);
   }, [activeFlowFilename]);
 
-  // ── Project open / create handlers (called by Sidebar) ───────────
+  // ── Project open / create handlers (called by the top project bar) ───────
   const handleOpenProject = useCallback((path: string) => {
     setActiveProjectPath(path);
     setActiveFlowFilename(null);
+    setNodeCatalogVersion((v) => v + 1);
     setSelectedNode(null);
+  }, []);
+
+  const handleNodeCatalogChange = useCallback(() => {
+    setNodeCatalogVersion((v) => v + 1);
   }, []);
 
   // ── Inspector callbacks ───────────────────────────────────────────
@@ -354,7 +375,21 @@ export default function App() {
          * The window itself is transparent and macOS draws the material
          * behind everything we paint.
          */}
-        <TitleBar />
+        <ProjectBar
+          activeProjectPath={activeProjectPath}
+          activeProjectName={projectName}
+          activeFlowFilename={activeFlowFilename}
+          insetRight={activeProjectPath && activeFlowFilename ? 356 : 8}
+          onAddNode={() => openPaletteRef.current()}
+          onBuildFlow={() => buildFlowRef.current()}
+          onOpenProject={handleOpenProject}
+          onCreateProject={(parentPath, name) => {
+            void invoke("create_project", { parentPath, name }).then(() => {
+              handleOpenProject(`${parentPath}/${name}`);
+            });
+          }}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
 
         {updateInfo && (
           <div className={s.updateBanner}>
@@ -377,31 +412,19 @@ export default function App() {
         )}
 
         <div className={s.body}>
-          <Sidebar
-            activeProjectPath={activeProjectPath}
-            activeProjectName={projectName}
-            activeFlowFilename={activeFlowFilename}
-            runningFlows={runningFlows}
-            onOpenProject={handleOpenProject}
-            onCreateProject={(parentPath, name) => {
-              void invoke("create_project", { parentPath, name }).then(() => {
-                handleOpenProject(`${parentPath}/${name}`);
-              });
-            }}
-            onSelectFlow={setActiveFlowFilename}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-
           <main className={s.content}>
             {activeProjectPath && activeFlowFilename ? (
               <FlowCanvas
                 projectPath={activeProjectPath}
                 flowFilename={activeFlowFilename}
+                nodeCatalogVersion={nodeCatalogVersion}
                 running={runningFlows.has(activeFlowFilename!)}
                 selectedNode={selectedNode}
                 onSelectionChange={setSelectedNode}
                 registerUpdateNodeData={registerUpdateNodeData}
                 registerDeleteNode={registerDeleteNode}
+                registerOpenPalette={registerOpenPalette}
+                registerBuildFlow={registerBuildFlow}
                 environments={environments}
                 onResultsChange={registerResults}
                 onErrorsChange={registerErrors}
@@ -456,10 +479,20 @@ export default function App() {
           />
         )}
 
-        {/* Bottom console panel — visible on every flow, persists across switches.
-            insetRight reserves space for the inspector island when it's mounted. */}
-        {activeProjectPath && activeFlowFilename && (
-          <ConsolePanel insetRight={356} />
+        {/* Bottom workspace — project assets and console live here so the
+            canvas stays primary without a permanent project rail. */}
+        {activeProjectPath && (
+          <BottomWorkspace
+            projectPath={activeProjectPath}
+            activeFlowFilename={activeFlowFilename}
+            runningFlows={runningFlows}
+            activeTab={activeWorkspaceTab}
+            insetRight={activeProjectPath && activeFlowFilename ? 356 : 16}
+            problems={lastErrors}
+            onTabChange={setActiveWorkspaceTab}
+            onNodeCatalogChange={handleNodeCatalogChange}
+            onSelectFlow={setActiveFlowFilename}
+          />
         )}
       </div>
     </ConsoleContext.Provider>

@@ -1,8 +1,8 @@
 /**
  * The main React Flow canvas.
  *
- * Loads a flow by id, renders nodes/edges, autosaves on change, and lets the
- * user drop new HttpRequest nodes via a "+" button on the toolbar.
+ * Loads a flow by id, renders nodes/edges, autosaves on change, and exposes
+ * palette/build actions to the surrounding app shell.
  *
  * Persistence model: a flow is loaded once on `flowId` change, then mutations
  * stay in local React Flow state. A debounced effect pushes the latest
@@ -72,6 +72,8 @@ import s from "./flow-canvas.module.css";
 interface FlowCanvasProps {
   projectPath: string;
   flowFilename: string;
+  /** Bumps when external actions add/remove project-local nodes or subflows. */
+  nodeCatalogVersion?: number;
   /** True when this flow is currently executing (managed by App). */
   running: boolean;
   selectedNode: Node | null;
@@ -79,6 +81,8 @@ interface FlowCanvasProps {
   /** Bound from parent so the inspector can mutate node data via callback. */
   registerUpdateNodeData: (fn: (id: string, data: Record<string, unknown>) => void) => void;
   registerDeleteNode: (fn: (id: string) => void) => void;
+  registerOpenPalette?: (fn: () => void) => void;
+  registerBuildFlow?: (fn: () => void) => void;
   /** Available environments — Start node renders the selector from these. */
   environments: ProjectEnvironment[];
   /** Notifies the parent (App) of the latest per-node run results, so the
@@ -159,10 +163,13 @@ export function FlowCanvas(props: FlowCanvasProps) {
 function FlowCanvasInner({
   projectPath,
   flowFilename,
+  nodeCatalogVersion = 0,
   running,
   onSelectionChange,
   registerUpdateNodeData,
   registerDeleteNode,
+  registerOpenPalette,
+  registerBuildFlow,
   environments,
   onResultsChange,
   onErrorsChange,
@@ -182,6 +189,7 @@ function FlowCanvasInner({
   const [variables, setVariables] = useState<FlowVariable[]>([]);
   const [flowInterface, setFlowInterface] = useState<Interface | null>(null);
   const [groups, setGroups] = useState<GroupMeta[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -237,6 +245,7 @@ function FlowCanvasInner({
   }, [groups]);
   // Reset drill-down when switching flows.
   useEffect(() => {
+    setSelectedGroupId(null);
     setFocusedGroupId(null);
   }, [flowFilename]);
 
@@ -323,7 +332,8 @@ function FlowCanvasInner({
    *  save from firing with stale/default data during transitions. */
   const hasLoadedRef = useRef(false);
 
-  // No custom node defs in the file-based model — custom nodes live in ~/.twistedflow/customNodes
+  // No frontend-defined custom node defs here — project-local custom nodes are
+  // discovered from the Rust backend and arrive as plugin palette entries.
   const customPaletteEntries = useMemo<NodeTypeDef[]>(() => [], []);
 
   // Load WASM plugin + subflow node metadata from Rust backend
@@ -368,7 +378,7 @@ function FlowCanvasInner({
     }).catch(() => {
       // list_node_types not available or failed — ignore
     });
-  }, [projectPath, flowFilename]);
+  }, [projectPath, flowFilename, nodeCatalogVersion]);
 
   // Build palette entries from WASM plugin nodes
   const pluginPaletteEntries = useMemo<NodeTypeDef[]>(
@@ -578,6 +588,7 @@ function FlowCanvasInner({
       for (const ch of normalChanges) {
         if (ch.type === "select") {
           if (ch.selected) {
+            setSelectedGroupId(null);
             setNodes((nds) => {
               const found = nds.find((n) => n.id === ch.id);
               if (found) onSelectionChange(found);
@@ -586,6 +597,19 @@ function FlowCanvasInner({
           } else {
             onSelectionChange(null);
           }
+        }
+      }
+
+      // Synthetic group placeholders are derived nodes, so keep their
+      // selection separately and feed it back into applyGroups().
+      for (const ch of groupChanges) {
+        if (ch.type !== "select") continue;
+        const gid = (ch as unknown as { id: string }).id.replace(/^group:/, "");
+        if (ch.selected) {
+          setSelectedGroupId(gid);
+          onSelectionChange(null);
+        } else {
+          setSelectedGroupId((prev) => (prev === gid ? null : prev));
         }
       }
     },
@@ -646,6 +670,7 @@ function FlowCanvasInner({
   const deleteNode = useCallback((id: string) => {
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+    setSelectedGroupId(null);
     onSelectionChange(null);
   }, [onSelectionChange]);
 
@@ -870,6 +895,14 @@ function FlowCanvasInner({
     setPalette({ screenPos: centerScreen, flowPos });
   }, [reactFlow]);
 
+  useEffect(() => {
+    registerOpenPalette?.(openPaletteAtCenter);
+  }, [registerOpenPalette, openPaletteAtCenter]);
+
+  useEffect(() => {
+    registerBuildFlow?.(() => void buildFlow());
+  }, [registerBuildFlow, buildFlow]);
+
   // ── Right-click on the canvas pane → palette at click position ─
   const onPaneContextMenu = useCallback(
     (e: React.MouseEvent | MouseEvent) => {
@@ -1009,9 +1042,15 @@ function FlowCanvasInner({
 
   // ── Apply group transform before handing nodes/edges to React Flow ──
   const { renderedNodes, renderedEdges } = useMemo(() => {
-    const { nodes: n, edges: e } = applyGroups(nodes, edges, groups, focusedGroupId);
+    const { nodes: n, edges: e } = applyGroups(
+      nodes,
+      edges,
+      groups,
+      selectedGroupId,
+      focusedGroupId,
+    );
     return { renderedNodes: n, renderedEdges: e };
-  }, [nodes, edges, groups, focusedGroupId]);
+  }, [nodes, edges, groups, selectedGroupId, focusedGroupId]);
 
   // ── Double-click: drill into group OR navigate to subflow file ──
   const [subflowNameToFilename, setSubflowNameToFilename] = useState<Record<string, string>>({});
@@ -1077,9 +1116,12 @@ function FlowCanvasInner({
         if (e.shiftKey) {
           // Ungroup: find a selected group placeholder OR a member of a group
           const selected = nodes.find((n) => n.selected);
-          if (!selected) return;
           let gid: string | undefined;
-          if (selected.type === GROUP_NODE_TYPE) {
+          if (selectedGroupId) {
+            gid = selectedGroupId;
+          } else if (!selected) {
+            return;
+          } else if (selected.type === GROUP_NODE_TYPE) {
             gid = (selected.data as { _groupId?: string } | undefined)?._groupId;
           } else {
             gid = (selected.data as { groupId?: string } | undefined)?.groupId;
@@ -1097,27 +1139,13 @@ function FlowCanvasInner({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [nodes, focusedGroupId, handleCollapseSelection, handleUngroup]);
+  }, [nodes, selectedGroupId, focusedGroupId, handleCollapseSelection, handleUngroup]);
 
   return (
     <FlowVariablesContext.Provider value={variablesContextValue}>
     <FlowInterfaceContext.Provider value={interfaceContextValue}>
     <FlowExecContext.Provider value={execContextValue}>
       <div className={s.canvas}>
-        <div className={s.toolbar}>
-          <button className={s.toolBtn} onClick={openPaletteAtCenter} title="Right-click canvas, drag a pin to empty space, or press Space">
-            + Add Node
-          </button>
-          <button
-            className={s.toolBtn}
-            onClick={() => void buildFlow()}
-            disabled={building || !projectPath}
-            title="Compile this flow into a standalone binary"
-          >
-            {building ? "Building..." : "Build"}
-          </button>
-        </div>
-
         {/* Build progress overlay */}
         {buildStatus.stage !== "idle" && (
           <div className={s.buildOverlay}>
@@ -1431,7 +1459,7 @@ const KNOWN_TYPES = new Set([
   "subflowOutputs",
   "subflowCall",
   // Collapsed-group placeholder — synthetic, never persisted as a node
-  "group",
+  "collapsedGroup",
 ]);
 
 function kindToType(kind: string): string {

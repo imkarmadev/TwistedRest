@@ -57,7 +57,11 @@ pub fn load_subflows<F: Fn(&str)>(
         let content = match std::fs::read_to_string(&path) {
             Ok(c) => c,
             Err(e) => {
-                on_warn(&format!("[subflow] failed to read {}: {}", path.display(), e));
+                on_warn(&format!(
+                    "[subflow] failed to read {}: {}",
+                    path.display(),
+                    e
+                ));
                 continue;
             }
         };
@@ -75,7 +79,10 @@ pub fn load_subflows<F: Fn(&str)>(
         }
 
         if flow.name.is_empty() {
-            on_warn(&format!("[subflow] skipping {} — missing name", path.display()));
+            on_warn(&format!(
+                "[subflow] skipping {} — missing name",
+                path.display()
+            ));
             continue;
         }
 
@@ -124,7 +131,9 @@ pub fn load_subflows<F: Fn(&str)>(
 
 /// DFS cycle detection. Returns the set of subflow type_ids involved in
 /// any cycle (including self-loops).
-fn detect_cyclic_subflows(graph: &HashMap<String, Vec<String>>) -> std::collections::HashSet<String> {
+fn detect_cyclic_subflows(
+    graph: &HashMap<String, Vec<String>>,
+) -> std::collections::HashSet<String> {
     use std::collections::HashSet;
     enum Color {
         Gray,
@@ -255,7 +264,10 @@ impl Node for SubflowNode {
                         output: Some(serde_json::to_value(&ret.data).unwrap_or(Value::Null)),
                     }
                 }
-                Err(e) => NodeResult::Error { message: e, raw_response: None },
+                Err(e) => NodeResult::Error {
+                    message: e,
+                    raw_response: None,
+                },
             }
         })
     }
@@ -304,8 +316,7 @@ pub async fn call_subflow(
     // Fresh outputs cache (isolated scope).
     let outputs: Arc<Mutex<Outputs>> = Arc::new(Mutex::new(HashMap::new()));
     let tap_logs: Arc<Mutex<TapLogs>> = Arc::new(Mutex::new(HashMap::new()));
-    let bg_tasks: Arc<Mutex<Vec<tokio::task::JoinHandle<()>>>> =
-        Arc::new(Mutex::new(Vec::new()));
+    let bg_tasks: Arc<Mutex<Vec<tokio::task::JoinHandle<()>>>> = Arc::new(Mutex::new(Vec::new()));
 
     // Seed the Inputs node's outputs with the caller's input values.
     {
@@ -324,7 +335,8 @@ pub async fn call_subflow(
                 if let Some(default_str) = &decl.default {
                     if !default_str.is_empty() {
                         let val = match decl.var_type.as_str() {
-                            "number" => default_str.parse::<f64>()
+                            "number" => default_str
+                                .parse::<f64>()
                                 .map(|n| serde_json::json!(n))
                                 .unwrap_or(Value::String(default_str.clone())),
                             "boolean" => match default_str.as_str() {

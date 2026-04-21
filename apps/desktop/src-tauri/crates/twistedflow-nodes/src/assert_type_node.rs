@@ -1,11 +1,11 @@
 //! Assert Type node — checks that a value has the expected type.
 //! Halts the flow (error) if the type doesn't match.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Assert Type",
@@ -23,11 +23,15 @@ impl Node for AssertTypeNode {
         Box::pin(async move {
             let value = ctx.resolve_input("in:value").await.unwrap_or(Value::Null);
 
-            let expected_type = ctx.node_data.get("expectedType")
+            let expected_type = ctx
+                .node_data
+                .get("expectedType")
                 .and_then(|v| v.as_str())
                 .unwrap_or("string");
 
-            let label = ctx.node_data.get("label")
+            let label = ctx
+                .node_data
+                .get("label")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Assert Type");
 
@@ -48,9 +52,7 @@ impl Node for AssertTypeNode {
 
             // Allow "integer" to match numbers that are whole
             let passed = match expected_type {
-                "integer" => {
-                    value.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false)
-                }
+                "integer" => value.as_f64().map(|f| f.fract() == 0.0).unwrap_or(false),
                 "number" => value.is_number(),
                 other => actual_type == other,
             };

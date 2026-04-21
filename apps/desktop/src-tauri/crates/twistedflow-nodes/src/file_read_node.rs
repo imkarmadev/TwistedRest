@@ -1,12 +1,12 @@
 //! File Read node — reads a file from disk, parses JSON if possible.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
-use twistedflow_engine::render_template;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_engine::render_template;
+use twistedflow_macros::node;
 
 #[node(
     name = "File Read",
@@ -22,11 +22,7 @@ impl Node for FileReadNode {
         ctx: NodeCtx<'a>,
     ) -> Pin<Box<dyn Future<Output = NodeResult> + Send + 'a>> {
         Box::pin(async move {
-            let path_template = match ctx
-                .node_data
-                .get("path")
-                .and_then(|v| v.as_str())
-            {
+            let path_template = match ctx.node_data.get("path").and_then(|v| v.as_str()) {
                 Some(p) if !p.is_empty() => p.to_string(),
                 _ => {
                     return NodeResult::Error {
@@ -52,8 +48,7 @@ impl Node for FileReadNode {
             };
 
             // Try to parse as JSON; fall back to plain string
-            let content: Value = serde_json::from_str(&raw)
-                .unwrap_or_else(|_| Value::String(raw));
+            let content: Value = serde_json::from_str(&raw).unwrap_or_else(|_| Value::String(raw));
 
             let mut out: HashMap<String, Value> = HashMap::new();
             out.insert("content".into(), content);

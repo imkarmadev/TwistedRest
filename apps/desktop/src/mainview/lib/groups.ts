@@ -29,7 +29,7 @@ export interface GroupMeta {
   position: { x: number; y: number };
 }
 
-export const GROUP_NODE_TYPE = "group";
+export const GROUP_NODE_TYPE = "collapsedGroup";
 /** Synthetic phantom node shown on either side of the drill-down canvas,
  *  exposing the boundary pins of the group so the user can see exactly
  *  what's coming in from outside / going out. Rendered by PhantomBoundaryNode. */
@@ -71,6 +71,7 @@ export function applyGroups(
   rawNodes: Node[],
   rawEdges: Edge[],
   groups: GroupMeta[],
+  selectedGroupId: string | null = null,
   focusedGroupId: string | null = null,
 ): GroupRenderResult {
   // ── Drill-down mode: show only focused group's internals + phantoms ──
@@ -192,6 +193,7 @@ export function applyGroups(
       id: `group:${gid}`,
       type: GROUP_NODE_TYPE,
       position: g.position,
+      selected: gid === selectedGroupId,
       data: {
         _groupId: gid,
         _label: g.label,

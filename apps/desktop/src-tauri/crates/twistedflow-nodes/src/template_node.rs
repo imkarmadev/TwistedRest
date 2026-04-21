@@ -3,13 +3,13 @@
 //! Pure data node. Takes a template string and resolves #{name} tokens
 //! from wired input pins — same syntax as HTTP Request templates.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
-use twistedflow_engine::render_template;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_engine::render_template;
+use twistedflow_macros::node;
 
 #[node(
     name = "Template",

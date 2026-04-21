@@ -3,12 +3,12 @@
 //! Thin wrapper around the response channel system. Sends a Location
 //! header with the configured status code (301/302/307/308).
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 use crate::http_listen;
 
@@ -76,7 +76,9 @@ impl Node for RedirectNode {
                 }
             } else {
                 return NodeResult::Error {
-                    message: "No _requestId found — Redirect must be inside an HTTP Listen handler chain".into(),
+                    message:
+                        "No _requestId found — Redirect must be inside an HTTP Listen handler chain"
+                            .into(),
                     raw_response: None,
                 };
             }

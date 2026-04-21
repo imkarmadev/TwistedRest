@@ -8,12 +8,12 @@
 //!   - flags:    just the flag object (--name=value or --name value)
 //!   - positional: array of positional (non-flag) arguments
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Parse Args",
@@ -35,19 +35,25 @@ impl Node for ParseArgsNode {
             // Find where user args start:
             // For `twistedflow run flow.json -- --myarg`, skip past "--"
             // For compiled binaries, args start at index 1
-            let user_args: Vec<String> = if let Some(pos) = raw_args.iter().position(|a| a == "--") {
+            let user_args: Vec<String> = if let Some(pos) = raw_args.iter().position(|a| a == "--")
+            {
                 raw_args[pos + 1..].to_vec()
             } else {
                 // Compiled binary: skip binary name only
                 // CLI mode: skip twistedflow, run, flow.json, and known CLI flags
                 let mut start = 1;
                 for (i, arg) in raw_args.iter().enumerate().skip(1) {
-                    if arg == "run" || arg.ends_with(".flow.json") || arg.ends_with(".json")
-                        || arg == "-q" || arg == "--quiet"
-                        || arg == "-e" || arg.starts_with("--env=")
+                    if arg == "run"
+                        || arg.ends_with(".flow.json")
+                        || arg.ends_with(".json")
+                        || arg == "-q"
+                        || arg == "--quiet"
+                        || arg == "-e"
+                        || arg.starts_with("--env=")
                         || arg.starts_with("--plugins=")
                         || arg.starts_with("--base-url=")
-                        || arg == "--base-url" || arg == "--plugins"
+                        || arg == "--base-url"
+                        || arg == "--plugins"
                     {
                         start = i + 1;
                         // If this flag takes a value arg, skip next too
@@ -127,7 +133,8 @@ impl Node for ParseArgsNode {
 
             let flags_value = serde_json::to_value(&flags).unwrap_or(json!({}));
             let positional_value = Value::Array(positional.clone());
-            let raw_value = Value::Array(user_args.iter().map(|s| Value::String(s.clone())).collect());
+            let raw_value =
+                Value::Array(user_args.iter().map(|s| Value::String(s.clone())).collect());
 
             let result = json!({
                 "flags": flags_value,

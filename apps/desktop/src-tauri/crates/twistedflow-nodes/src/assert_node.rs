@@ -1,11 +1,11 @@
 //! Assert node — checks that a value equals an expected value.
 //! Halts the flow (error) if the assertion fails.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Assert",
@@ -26,12 +26,15 @@ impl Node for AssertNode {
 
             // If no expected input wired, check against node_data.expected
             let expected = expected.unwrap_or_else(|| {
-                ctx.node_data.get("expected")
+                ctx.node_data
+                    .get("expected")
                     .cloned()
                     .unwrap_or(Value::Null)
             });
 
-            let label = ctx.node_data.get("label")
+            let label = ctx
+                .node_data
+                .get("label")
                 .and_then(|v| v.as_str())
                 .unwrap_or("Assert");
 

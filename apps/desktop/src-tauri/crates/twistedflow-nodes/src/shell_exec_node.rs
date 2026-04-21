@@ -1,14 +1,14 @@
 //! Shell Exec node — executes a shell command, captures stdout/stderr/exit code.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
-use twistedflow_engine::render_template;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use tokio::process::Command;
 use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_engine::render_template;
+use twistedflow_macros::node;
 
 #[node(
     name = "Shell Exec",
@@ -24,11 +24,7 @@ impl Node for ShellExecNode {
         ctx: NodeCtx<'a>,
     ) -> Pin<Box<dyn Future<Output = NodeResult> + Send + 'a>> {
         Box::pin(async move {
-            let command_template = match ctx
-                .node_data
-                .get("command")
-                .and_then(|v| v.as_str())
-            {
+            let command_template = match ctx.node_data.get("command").and_then(|v| v.as_str()) {
                 Some(c) if !c.is_empty() => c.to_string(),
                 _ => {
                     return NodeResult::Error {
@@ -81,9 +77,7 @@ impl Node for ShellExecNode {
                     let mut stdin_pipe = stdin_pipe;
                     let stdin_bytes = match &stdin_val {
                         Value::String(s) => s.as_bytes().to_vec(),
-                        v => serde_json::to_string(v)
-                            .unwrap_or_default()
-                            .into_bytes(),
+                        v => serde_json::to_string(v).unwrap_or_default().into_bytes(),
                     };
                     // Best-effort write; ignore errors
                     let _ = stdin_pipe.write_all(&stdin_bytes).await;

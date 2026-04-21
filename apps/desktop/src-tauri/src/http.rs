@@ -134,10 +134,7 @@ pub async fn oauth2_client_credentials(
         .unwrap()
         .as_secs();
 
-    let refresh_token = parsed["refresh_token"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let refresh_token = parsed["refresh_token"].as_str().unwrap_or("").to_string();
 
     Ok(OAuth2TokenResult {
         access_token,
@@ -166,10 +163,7 @@ pub async fn oauth2_authorize(
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
         .map_err(|e| format!("Failed to bind callback server: {}", e))?;
-    let port = listener
-        .local_addr()
-        .map_err(|e| e.to_string())?
-        .port();
+    let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let redirect_uri = format!("http://127.0.0.1:{}/callback", port);
 
     // 2. Build authorization URL with CSRF state
@@ -185,8 +179,7 @@ pub async fn oauth2_authorize(
     );
 
     // 3. Open browser
-    open::that(&full_auth_url)
-        .map_err(|e| format!("Failed to open browser: {}", e))?;
+    open::that(&full_auth_url).map_err(|e| format!("Failed to open browser: {}", e))?;
 
     // 4. Wait for callback (120s timeout)
     let (mut stream, _) = tokio::time::timeout(Duration::from_secs(120), listener.accept())
@@ -205,8 +198,8 @@ pub async fn oauth2_authorize(
     // Extract code and state from query string
     let code = extract_query_param(&request, "code")
         .ok_or("No authorization code in callback. User may have denied access.")?;
-    let returned_state = extract_query_param(&request, "state")
-        .ok_or("No state parameter in callback.")?;
+    let returned_state =
+        extract_query_param(&request, "state").ok_or("No state parameter in callback.")?;
 
     if returned_state != state {
         return Err("State mismatch — possible CSRF attack. Try again.".into());
@@ -257,10 +250,7 @@ pub async fn oauth2_authorize(
         .as_str()
         .ok_or("Missing access_token in token response")?
         .to_string();
-    let refresh_token = parsed["refresh_token"]
-        .as_str()
-        .unwrap_or("")
-        .to_string();
+    let refresh_token = parsed["refresh_token"].as_str().unwrap_or("").to_string();
     let expires_in = parsed["expires_in"].as_u64().unwrap_or(3600);
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -303,7 +293,12 @@ fn extract_query_param(request: &str, name: &str) -> Option<String> {
         let value = kv.next().unwrap_or("");
         if key == name {
             // Basic URL decoding
-            return Some(value.replace("%3A", ":").replace("%2F", "/").replace("+", " "));
+            return Some(
+                value
+                    .replace("%3A", ":")
+                    .replace("%2F", "/")
+                    .replace("+", " "),
+            );
         }
     }
     None

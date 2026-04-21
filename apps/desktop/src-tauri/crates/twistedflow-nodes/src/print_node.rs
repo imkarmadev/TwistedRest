@@ -1,10 +1,10 @@
 //! Print node — prints a value to stdout and emits a log entry to the console panel.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Print",
@@ -29,12 +29,10 @@ impl Node for PrintNode {
                 Value::Bool(b) => println!("{}", b),
                 Value::Number(n) => println!("{}", n),
                 // Objects and arrays get pretty-printed
-                v => {
-                    match serde_json::to_string_pretty(v) {
-                        Ok(pretty) => println!("{}", pretty),
-                        Err(_) => println!("{}", v),
-                    }
-                }
+                v => match serde_json::to_string_pretty(v) {
+                    Ok(pretty) => println!("{}", pretty),
+                    Err(_) => println!("{}", v),
+                },
             }
 
             // Also emit to the desktop UI console panel

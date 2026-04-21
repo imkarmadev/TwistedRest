@@ -6,12 +6,12 @@
 //! and a status event is emitted carrying both the current value and the full
 //! accumulated log.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult, StatusEvent};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::collections::HashMap;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult, StatusEvent};
+use twistedflow_macros::node;
 
 #[node(
     name = "Tap",

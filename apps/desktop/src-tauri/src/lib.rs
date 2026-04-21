@@ -3,6 +3,7 @@
 //! File-based project model — no SQLite. Projects are folders on disk
 //! with twistedflow.toml, flows/*.flow.json, .env* files.
 
+mod custom_nodes;
 mod executor_commands;
 mod http;
 mod project;
@@ -121,6 +122,9 @@ pub fn run() {
             project::save_environment,
             project::create_environment,
             project::delete_environment,
+            custom_nodes::create_custom_node_source,
+            custom_nodes::open_custom_node_source,
+            custom_nodes::build_custom_node,
             // HTTP
             http::http_request,
             http::oauth2_client_credentials,

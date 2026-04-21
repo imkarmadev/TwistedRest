@@ -9,10 +9,10 @@
 //! caller fires when this node is reached. Defaults to the first declared
 //! exec output when config is empty.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Outputs",
@@ -39,10 +39,7 @@ impl Node for SubflowOutputsNode {
             // Cache data inputs + branch under this node's id. Keyed with a
             // leading underscore so it can't collide with a user-declared pin.
             let mut values = data_inputs;
-            values.insert(
-                "__branch__".to_string(),
-                serde_json::Value::String(branch),
-            );
+            values.insert("__branch__".to_string(), serde_json::Value::String(branch));
             ctx.set_outputs(values).await;
 
             NodeResult::Continue { output: None }

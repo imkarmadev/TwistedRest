@@ -1,0 +1,8 @@
+[package]
+name = "twistedflow-plugin-dev"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+twistedflow-engine = { path = "../twistedflow-engine" }
+twistedflow-project = { path = "../twistedflow-project" }

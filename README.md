@@ -1,8 +1,9 @@
 # TwistedFlow
 
-A visual flow engine. Build automations, API clients, HTTP servers, test suites, and system tools by wiring nodes on a canvas — then run them headlessly or compile to standalone binaries.
+A visual flow engine. Build automations, API clients, HTTP servers, test suites, and system tools by wiring nodes on a canvas — then run them headlessly or compile them to standalone binaries.
 
-**Desktop app** (Tauri 2 + React 19 + Rust) + **CLI** (`twistedflow-cli run` / `twistedflow-cli build`).
+**Desktop app** (Tauri 2 + React 19 + Rust) + **CLI** (`twistedflow-cli run` / `twistedflow-cli build` / `twistedflow-cli plugin ...`).
+Both are thin frontends over the same Rust runtime/build crates.
 
 ---
 
@@ -38,7 +39,7 @@ A visual flow engine. Build automations, API clients, HTTP servers, test suites,
 | **MakeObject** | Data | Assembles an object from named typed input pins. |
 | **Convert** | Data | Type coercion (string/number/integer/boolean/JSON). |
 | **Tap** | Data | Pass-through debug probe. Shows every value that flows through. |
-| **Log** | Data | Exec-chain print sink. Writes to the console panel. |
+| **Log** | Data | Exec-chain print sink. Writes to the Console tab. |
 | **Filter** | Data | Filter array items by expression (`item.status == 200`). |
 | **Map** | Data | Transform array items — pluck, pick, or template. |
 | **Merge** | Data | Deep-merge objects or concatenate arrays. |
@@ -86,11 +87,19 @@ twistedflow build ~/my-project -o my-app --flow main --env prod
 ./my-app   # just runs, no args needed
 ```
 
-The desktop app also has a **Build** button in the canvas toolbar that compiles via native save dialog.
+The desktop app also has a **Build** action in the top project bar. It calls the same shared Rust builder the CLI uses and writes the standalone binary via the native save dialog.
 
-### WASM Plugins
+### Custom Nodes (WASM)
 
-Custom nodes written in Rust, compiled to WebAssembly. One command scaffolds, builds, and installs:
+Custom nodes are Rust crates compiled to WebAssembly and loaded from the current project's `nodes/` folder.
+
+Desktop workflow:
+- Open the **Custom Nodes** tab in the bottom workspace
+- Click **New Node**
+- Implement the generated Rust source in your editor
+- Use **Build Plugin** on the node tile to compile and install it into the project
+
+CLI workflow:
 
 ```bash
 twistedflow plugin new my-plugin --category Utility --node Hello
@@ -98,7 +107,7 @@ cd my-plugin
 twistedflow plugin build
 ```
 
-The guest SDK (`twistedflow-plugin` crate) exposes a `nodes!` macro — no manual ABI wiring. Plugins support multi-input/output nodes, typed pins (`string`, `number`, `boolean`, `object`, `array`), and `host::log` callbacks that route into the TwistedFlow console.
+The guest SDK (`twistedflow-plugin` crate) exposes a `nodes!` macro — no manual ABI wiring. Custom nodes support multi-input/output nodes, typed pins (`string`, `number`, `boolean`, `object`, `array`), and `host::log` callbacks that route into the TwistedFlow console.
 
 See the [plugin author guide](./docs/plugins.md) and [examples](./examples/plugins) (`text-utils`, `json-tools`).
 
@@ -114,8 +123,15 @@ my-project/
 ├── .env.prod            # prod environment
 ├── flows/
 │   └── main.flow.json
-└── nodes/               # project WASM plugins
+├── nodes/               # built/installed project-local .wasm custom nodes
+└── nodes-src/           # optional editable Rust source for those custom nodes
 ```
+
+### Canvas-First Desktop UI
+
+- **Top project bar** — project context, Add Node, Build, Open/New Project
+- **Bottom workspace** — Flows, Subflows, Custom Nodes, Console, Problems
+- **Right inspector** — selected node or active flow/subflow settings
 
 ### Smart Canvas
 
@@ -129,7 +145,7 @@ my-project/
 ### Debugging
 
 - **Tap nodes** show every value that passed through (inline on the canvas)
-- **Log nodes** print to the **Console panel** (toggle with **`** backtick key)
+- **Log nodes** print to the **Console** tab in the bottom workspace (toggle with **`** backtick key)
 - **Per-node status** — pending (grey), running (pulsing cyan), ok (green), error (red)
 - **Last Response viewer** in the inspector
 - **Stop button** — halts execution at the next node boundary
@@ -155,18 +171,22 @@ TwistedFlow/
 ├── apps/
 │   ├── desktop/                    # Tauri desktop app
 │   │   ├── src-tauri/              # Rust workspace
-│   │   │   ├── src/                # Tauri app (project.rs, executor_commands.rs, http.rs)
+│   │   │   ├── src/                # Tauri app (project.rs, executor_commands.rs, custom_nodes.rs, http.rs)
 │   │   │   └── crates/
 │   │   │       ├── twistedflow-engine/   # Pure async executor, graph, templates, WASM host
-│   │   │       ├── twistedflow-nodes/    # 46 built-in node implementations (#[node] macro)
+│   │   │       ├── twistedflow-nodes/    # Built-in node implementations (#[node] macro)
 │   │   │       ├── twistedflow-macros/   # #[node] proc macro + inventory auto-registration
-│   │   │       ├── twistedflow-cli/      # CLI binary (run + build)
+│   │   │       ├── twistedflow-cli/      # CLI binary (run + build + plugin)
+│   │   │       ├── twistedflow-builder/  # Shared flow -> binary build logic
+│   │   │       ├── twistedflow-project/  # Shared project/runtime loading helpers
+│   │   │       ├── twistedflow-plugin-dev/ # Shared custom-node scaffold/build helpers
 │   │   │       └── twistedflow-plugin/   # Guest SDK for WASM plugin authors
 │   │   └── src/mainview/           # React frontend
 │   │       ├── components/canvas/  # Node renderers + flow canvas
 │   │       ├── components/inspector/ # Property editor
-│   │       ├── components/console/ # Log panel
+│   │       ├── components/workspace/ # Bottom workspace tabs
 │   │       ├── components/settings/ # Project settings
+│   │       ├── components/layout/  # Top project bar
 │   │       └── lib/                # Pin system, schema resolution, node registry
 │   └── web/                        # Landing page
 ├── packages/
@@ -243,7 +263,7 @@ Produces a `.app` bundle in `src-tauri/target/release/bundle/`.
 |-----|--------|
 | **Right-click** | Open node palette at cursor |
 | **Space** | Open node palette at center |
-| **`** (backtick) | Toggle console panel |
+| **`** (backtick) | Toggle Console tab |
 | **M** | Toggle minimap |
 | **Backspace / Delete** | Delete selected node or edge |
 | **Cmd+Z / Cmd+Shift+Z** | Undo / Redo |

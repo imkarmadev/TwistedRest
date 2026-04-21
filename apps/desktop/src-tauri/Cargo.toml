@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "crates/twistedflow-engine", "crates/twistedflow-nodes", "crates/twistedflow-macros", "crates/twistedflow-cli"]
+members = [".", "crates/twistedflow-engine", "crates/twistedflow-nodes", "crates/twistedflow-macros", "crates/twistedflow-cli", "crates/twistedflow-builder", "crates/twistedflow-project", "crates/twistedflow-plugin-dev"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -45,6 +45,9 @@ tokio-util = { workspace = true }
 reqwest = { workspace = true }
 twistedflow-engine = { path = "crates/twistedflow-engine" }
 twistedflow-nodes = { path = "crates/twistedflow-nodes" }
+twistedflow-builder = { path = "crates/twistedflow-builder" }
+twistedflow-project = { path = "crates/twistedflow-project" }
+twistedflow-plugin-dev = { path = "crates/twistedflow-plugin-dev" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 window-vibrancy = "0.5"

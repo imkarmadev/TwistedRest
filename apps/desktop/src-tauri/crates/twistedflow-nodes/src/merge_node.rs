@@ -7,12 +7,12 @@
 //!   - "concat": concatenate two arrays
 //!   - "auto":   detect types — merge objects, concat arrays
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Merge",
@@ -41,29 +41,34 @@ impl Node for MergeNode {
                 "deep" => deep_merge(a, b),
                 "shallow" => shallow_merge(a, b),
                 "concat" => concat_values(a, b),
-                "auto" | _ => {
-                    match (&a, &b) {
-                        (Value::Object(_), Value::Object(_)) => deep_merge(a, b),
-                        (Value::Array(_), Value::Array(_)) => concat_values(a, b),
-                        (Value::Object(_), _) => deep_merge(a, json!({})),
-                        (Value::Array(_), _) => {
-                            let mut arr = if let Value::Array(arr) = a { arr } else { vec![] };
-                            if b != Value::Null {
-                                arr.push(b);
-                            }
-                            Value::Array(arr)
+                "auto" | _ => match (&a, &b) {
+                    (Value::Object(_), Value::Object(_)) => deep_merge(a, b),
+                    (Value::Array(_), Value::Array(_)) => concat_values(a, b),
+                    (Value::Object(_), _) => deep_merge(a, json!({})),
+                    (Value::Array(_), _) => {
+                        let mut arr = if let Value::Array(arr) = a {
+                            arr
+                        } else {
+                            vec![]
+                        };
+                        if b != Value::Null {
+                            arr.push(b);
                         }
-                        _ => a,
+                        Value::Array(arr)
                     }
-                }
+                    _ => a,
+                },
             };
 
             let mut out: HashMap<String, Value> = HashMap::new();
             out.insert("result".into(), result);
             ctx.set_outputs(out).await;
 
-            NodeResult::Data(ctx.get_outputs(ctx.node_id).await
-                .map(|o| serde_json::to_value(o).unwrap_or(Value::Null)))
+            NodeResult::Data(
+                ctx.get_outputs(ctx.node_id)
+                    .await
+                    .map(|o| serde_json::to_value(o).unwrap_or(Value::Null)),
+            )
         })
     }
 }

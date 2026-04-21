@@ -1,13 +1,13 @@
 //! File Write node — writes content to a file, creating parent directories as needed.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
-use twistedflow_engine::render_template;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::path::Path;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_engine::render_template;
+use twistedflow_macros::node;
 
 #[node(
     name = "File Write",
@@ -23,11 +23,7 @@ impl Node for FileWriteNode {
         ctx: NodeCtx<'a>,
     ) -> Pin<Box<dyn Future<Output = NodeResult> + Send + 'a>> {
         Box::pin(async move {
-            let path_template = match ctx
-                .node_data
-                .get("path")
-                .and_then(|v| v.as_str())
-            {
+            let path_template = match ctx.node_data.get("path").and_then(|v| v.as_str()) {
                 Some(p) if !p.is_empty() => p.to_string(),
                 _ => {
                     return NodeResult::Error {

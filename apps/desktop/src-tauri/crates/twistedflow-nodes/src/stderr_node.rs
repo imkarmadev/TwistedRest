@@ -3,11 +3,11 @@
 //! Exec node. Like Print but targets stderr instead of stdout.
 //! Essential for CLI tools: data goes to stdout, messages go to stderr.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Stderr",
@@ -30,12 +30,10 @@ impl Node for StderrNode {
                 Value::Null => eprintln!("null"),
                 Value::Bool(b) => eprintln!("{}", b),
                 Value::Number(n) => eprintln!("{}", n),
-                v => {
-                    match serde_json::to_string_pretty(v) {
-                        Ok(pretty) => eprintln!("{}", pretty),
-                        Err(_) => eprintln!("{}", v),
-                    }
-                }
+                v => match serde_json::to_string_pretty(v) {
+                    Ok(pretty) => eprintln!("{}", pretty),
+                    Err(_) => eprintln!("{}", v),
+                },
             }
 
             ctx.emit_log("Stderr", value.clone());

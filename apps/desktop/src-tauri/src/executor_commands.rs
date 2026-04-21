@@ -101,25 +101,11 @@ pub async fn run_flow(
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    // Build the node registry: built-in nodes (via inventory) + project-local
-    // WASM nodes + project subflows. Custom nodes are project assets; the
-    // desktop app intentionally does not load a machine-global plugin folder.
-    let mut registry = twistedflow_engine::build_registry();
-
-    // Load WASM plugins from {project}/nodes/*.wasm.
     let project_dir = std::path::Path::new(&project_path);
-    let project_nodes_dir = project_dir.join("nodes").to_string_lossy().to_string();
-    let plugin_dirs = vec![project_nodes_dir.as_str()];
-    let wasm_nodes = twistedflow_engine::load_wasm_plugins(&plugin_dirs);
-    for (type_id, node, _meta) in wasm_nodes {
-        registry.insert(type_id.to_string(), node);
-    }
-
-    // Load subflows from {project}/flows/*.flow.json with kind=subflow
-    let subflow_nodes = twistedflow_engine::load_subflows(project_dir, |msg| eprintln!("{}", msg));
-    for (type_id, node, _meta) in subflow_nodes {
-        registry.insert(type_id, node);
-    }
+    let (registry, _load) =
+        twistedflow_project::build_runtime_registry(Some(project_dir), &[], |msg| {
+            eprintln!("{}", msg)
+        });
 
     let opts = Arc::new(RunFlowOpts {
         index,
@@ -181,19 +167,9 @@ pub fn list_node_types(project_path: Option<String>) -> serde_json::Value {
 
     if let Some(p) = project_path {
         let project_dir = std::path::Path::new(&p);
-
-        // WASM nodes from the active project only.
-        let project_nodes_dir = project_dir.join("nodes").to_string_lossy().to_string();
-        let plugin_dirs = vec![project_nodes_dir.as_str()];
-        let wasm_nodes = twistedflow_engine::load_wasm_plugins(&plugin_dirs);
-        for (_type_id, _node, meta) in wasm_nodes {
-            all.push(serde_json::to_value(&meta).unwrap_or_default());
-        }
-
-        // Subflows from the active project.
-        let subflow_nodes =
-            twistedflow_engine::load_subflows(project_dir, |msg| eprintln!("{}", msg));
-        for (_type_id, _node, meta) in subflow_nodes {
+        for meta in twistedflow_project::runtime_node_metadata(Some(project_dir), &[], |msg| {
+            eprintln!("{}", msg)
+        }) {
             all.push(serde_json::to_value(&meta).unwrap_or_default());
         }
     }
@@ -226,11 +202,6 @@ pub async fn build_flow(
         }),
     );
 
-    // Find the twistedflow-cli binary — it's in the same target dir as this binary
-    let cli_path = find_cli_binary().ok_or(
-        "Cannot find twistedflow-cli binary. Build it with: cargo build -p twistedflow-cli",
-    )?;
-
     let _ = app.emit(
         "build:progress",
         serde_json::json!({
@@ -239,73 +210,46 @@ pub async fn build_flow(
         }),
     );
 
-    // Run the CLI build command as a subprocess
-    let output = tokio::process::Command::new(&cli_path)
-        .arg("build")
-        .arg(&project_path)
-        .arg("-o")
-        .arg(&output_path)
-        .arg("--flow")
-        .arg(&flow_name)
-        .arg("--env")
-        .arg(&env_name)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .await
-        .map_err(|e| format!("Failed to start build: {}", e))?;
+    let project_path_for_build = project_path.clone();
+    let output_path_for_build = output_path.clone();
+    let flow_name_for_build = flow_name.clone();
+    let env_name_for_build = env_name.clone();
+    let build_result = tokio::task::spawn_blocking(move || {
+        twistedflow_builder::build(
+            std::path::Path::new(&project_path_for_build),
+            &output_path_for_build,
+            Some(&flow_name_for_build),
+            &env_name_for_build,
+            true,
+        )
+    })
+    .await
+    .map_err(|e| format!("Build task failed: {}", e))?;
 
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    match build_result {
+        Ok(result) => {
+            let size_str = result.formatted_size();
+            let output_path_str = result.output_path.display().to_string();
+            let _ = app.emit(
+                "build:progress",
+                serde_json::json!({
+                    "stage": "done",
+                    "message": format!("Built successfully: {} ({})", output_path_str, size_str),
+                }),
+            );
 
-    if output.status.success() {
-        // Get file size
-        let size = std::fs::metadata(&output_path)
-            .map(|m| m.len())
-            .unwrap_or(0);
-        let size_str = if size >= 1_048_576 {
-            format!("{:.1}MB", size as f64 / 1_048_576.0)
-        } else {
-            format!("{:.0}KB", size as f64 / 1024.0)
-        };
+            Ok(format!("{} ({})", output_path_str, size_str))
+        }
+        Err(err) => {
+            let _ = app.emit(
+                "build:progress",
+                serde_json::json!({
+                    "stage": "error",
+                    "message": format!("Build failed: {}", err.trim()),
+                }),
+            );
 
-        let _ = app.emit(
-            "build:progress",
-            serde_json::json!({
-                "stage": "done",
-                "message": format!("Built successfully: {} ({})", output_path, size_str),
-            }),
-        );
-
-        Ok(format!("{} ({})", output_path, size_str))
-    } else {
-        let _ = app.emit(
-            "build:progress",
-            serde_json::json!({
-                "stage": "error",
-                "message": format!("Build failed: {}", stderr.trim()),
-            }),
-        );
-
-        Err(format!("Build failed:\n{}", stderr.trim()))
+            Err(format!("Build failed:\n{}", err.trim()))
+        }
     }
-}
-
-/// Find the twistedflow-cli binary relative to the current executable.
-fn find_cli_binary() -> Option<String> {
-    let current_exe = std::env::current_exe().ok()?;
-    let dir = current_exe.parent()?;
-
-    // Check same directory (debug/release builds)
-    let cli = dir.join("twistedflow-cli");
-    if cli.exists() {
-        return Some(cli.to_string_lossy().to_string());
-    }
-
-    // Check ../target/debug
-    let debug = dir.join("../target/debug/twistedflow-cli");
-    if debug.exists() {
-        return Some(debug.to_string_lossy().to_string());
-    }
-
-    None
 }

@@ -8,12 +8,12 @@
 //!                       → exec-route:2 (POST /users)
 //!                       → exec-notFound
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Route",
@@ -59,10 +59,7 @@ impl Node for RouteNode {
                     .and_then(|v| v.as_str())
                     .unwrap_or("GET")
                     .to_uppercase();
-                let pattern = route
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("/");
+                let pattern = route.get("path").and_then(|v| v.as_str()).unwrap_or("/");
 
                 let method_ok = method == "*" || method == actual_method;
                 if !method_ok {
@@ -173,7 +170,10 @@ fn parse_query(raw: &str) -> Value {
         if !key.is_empty() {
             let decoded_key = urlencoding::decode(key).unwrap_or_else(|_| key.into());
             let decoded_val = urlencoding::decode(val).unwrap_or_else(|_| val.into());
-            map.insert(decoded_key.into_owned(), Value::String(decoded_val.into_owned()));
+            map.insert(
+                decoded_key.into_owned(),
+                Value::String(decoded_val.into_owned()),
+            );
         }
     }
 

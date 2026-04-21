@@ -1,11 +1,11 @@
 //! Sleep node — pauses exec-chain execution for a configurable number of milliseconds.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Duration;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Sleep",
@@ -30,13 +30,11 @@ impl Node for SleepNode {
 
             let ms = ms_from_input
                 .or_else(|| {
-                    ctx.node_data
-                        .get("ms")
-                        .and_then(|v| match v {
-                            Value::Number(n) => n.as_u64(),
-                            Value::String(s) => s.parse::<u64>().ok(),
-                            _ => None,
-                        })
+                    ctx.node_data.get("ms").and_then(|v| match v {
+                        Value::Number(n) => n.as_u64(),
+                        Value::String(s) => s.parse::<u64>().ok(),
+                        _ => None,
+                    })
                 })
                 .unwrap_or(1000);
 

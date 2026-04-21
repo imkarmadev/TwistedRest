@@ -15,10 +15,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use twistedflow_engine::{
-    build_registry, load_subflows, load_wasm_plugins, FlowFile, GraphIndex, LogEntry, RunFlowOpts,
-    StatusEvent,
-};
+use twistedflow_engine::{FlowFile, GraphIndex, LogEntry, RunFlowOpts, StatusEvent};
 
 #[derive(Parser)]
 #[command(name = "twistedflow", about = "TwistedFlow — visual flow engine CLI")]
@@ -166,47 +163,31 @@ async fn run_flow(
     let graph = flow_file.to_graph();
     let index = Arc::new(GraphIndex::build(&graph));
 
-    // 3. Build node registry (built-in + project-local WASM nodes)
-    let mut registry = build_registry();
-
-    let mut plugin_dir_strings = Vec::new();
-    if let Some(project_dir) =
-        find_project_root(file.parent().unwrap_or_else(|| std::path::Path::new(".")))
-    {
-        plugin_dir_strings.push(project_dir.join("nodes").to_string_lossy().to_string());
-    }
-    if let Some(extra_plugins) = plugins {
-        plugin_dir_strings.extend(
+    // 3. Build node registry (built-in + project-local WASM nodes + subflows)
+    let project_dir = twistedflow_project::find_project_root(
+        file.parent().unwrap_or_else(|| std::path::Path::new(".")),
+    );
+    let extra_plugin_dirs = plugins
+        .map(|extra_plugins| {
             extra_plugins
                 .split(',')
                 .map(|s| s.trim())
                 .filter(|s| !s.is_empty())
-                .map(|s| s.to_string()),
-        );
-    }
-    let plugin_dirs: Vec<&str> = plugin_dir_strings.iter().map(|s| s.as_str()).collect();
-    let wasm_nodes = load_wasm_plugins(&plugin_dirs);
-    let wasm_count = wasm_nodes.len();
-    for (type_id, node, _meta) in wasm_nodes {
-        registry.insert(type_id.to_string(), node);
-    }
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let (registry, load) = twistedflow_project::build_runtime_registry(
+        project_dir.as_deref(),
+        &extra_plugin_dirs,
+        |msg| eprintln!("{}", msg),
+    );
 
-    if !quiet && wasm_count > 0 {
-        eprintln!("  loaded {} WASM plugin node(s)", wasm_count);
+    if !quiet && load.wasm_count > 0 {
+        eprintln!("  loaded {} WASM plugin node(s)", load.wasm_count);
     }
-
-    // Load subflows from the nearest project dir.
-    if let Some(project_dir) =
-        find_project_root(file.parent().unwrap_or_else(|| std::path::Path::new(".")))
-    {
-        let subflows = load_subflows(&project_dir, |msg| eprintln!("{}", msg));
-        let sub_count = subflows.len();
-        for (type_id, node, _meta) in subflows {
-            registry.insert(type_id, node);
-        }
-        if !quiet && sub_count > 0 {
-            eprintln!("  loaded {} subflow(s)", sub_count);
-        }
+    if !quiet && load.subflow_count > 0 {
+        eprintln!("  loaded {} subflow(s)", load.subflow_count);
     }
 
     // 4. Parse env vars
@@ -310,13 +291,4 @@ async fn run_flow(
             1
         }
     }
-}
-
-fn find_project_root(start: &std::path::Path) -> Option<PathBuf> {
-    for dir in start.ancestors() {
-        if dir.join("twistedflow.toml").exists() {
-            return Some(dir.to_path_buf());
-        }
-    }
-    None
 }

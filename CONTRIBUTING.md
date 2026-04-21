@@ -48,13 +48,16 @@ bun run typecheck         # all packages
 TwistedFlow/
 ├── apps/
 │   ├── desktop/                    # Tauri desktop app
-│   │   ├── src-tauri/              # Rust workspace (5 crates)
+│   │   ├── src-tauri/              # Rust workspace
 │   │   │   ├── src/                # Tauri app shell (commands, project I/O, HTTP bridge)
 │   │   │   └── crates/
 │   │   │       ├── twistedflow-engine/   # Pure async executor, graph, templates, WASM host
-│   │   │       ├── twistedflow-nodes/    # 23 built-in nodes via #[node] macro
+│   │   │       ├── twistedflow-nodes/    # Built-in nodes via #[node] macro
 │   │   │       ├── twistedflow-macros/   # #[node] proc macro + inventory registration
-│   │   │       ├── twistedflow-cli/      # CLI binary (run + build subcommands)
+│   │   │       ├── twistedflow-cli/      # CLI binary (run + build + plugin)
+│   │   │       ├── twistedflow-builder/  # Shared flow binary build logic
+│   │   │       ├── twistedflow-project/  # Shared project/runtime helpers
+│   │   │       ├── twistedflow-plugin-dev/ # Shared custom-node scaffold/build helpers
 │   │   │       └── twistedflow-plugin/   # Guest SDK for WASM plugin authors
 │   │   └── src/mainview/           # React frontend
 │   └── web/                        # Landing page (static HTML)
@@ -117,20 +120,20 @@ Nodes have two halves: a Rust implementation (execution) and a React component (
 - Create a test flow in `~/Desktop/test-project/flows/` that exercises the node
 - Test in the desktop app and via `twistedflow-cli run`
 
-### Adding a WASM Plugin Node
+### Adding a WASM Custom Node
 
-For nodes distributed as plugins (not built-in):
+For nodes distributed as project-local custom nodes (not built-in):
 
-1. Create a Rust project that depends on `twistedflow-plugin`
-2. Implement the guest trait
+1. Create a Rust project that depends on `twistedflow-plugin`, or use `twistedflow plugin new`
+2. Define nodes with the `nodes!` macro
 3. Compile to `.wasm`
-4. Drop in `~/.twistedflow/plugins/` or `{project}/nodes/`
+4. Install into `{project}/nodes/` (desktop and CLI both support this directly)
 
 See `examples/plugins/` for a reference.
 
 ### Contributing Example Flows
 
-Example flows live in `/examples` as `.flow.json` files. They're importable via the sidebar.
+Example flows live in `/examples` as `.flow.json` files. Copy them into a project's `flows/` directory, then open them from the **Flows** tab in the desktop app.
 
 Good examples:
 - Exercise multiple node types

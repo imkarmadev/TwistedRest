@@ -16,8 +16,8 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::BTreeMap;
 use std::path::Path;
+use twistedflow_project::CustomNodeAsset;
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -82,30 +82,6 @@ pub struct EnvInfo {
 pub struct EnvVar {
     pub key: String,
     pub value: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomNodeSummary {
-    pub type_id: String,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CustomNodeAsset {
-    pub id: String,
-    pub name: String,
-    pub wasm_path: Option<String>,
-    pub source_path: Option<String>,
-    /// "loaded", "draft", or "invalid". The UI decides which actions to
-    /// show from can_use/can_build rather than parsing this field.
-    pub status: String,
-    pub can_use: bool,
-    pub can_build: bool,
-    pub can_open_source: bool,
-    pub nodes: Vec<CustomNodeSummary>,
-    pub error: Option<String>,
 }
 
 // ── Project TOML config ─────────────────────────────────────────────
@@ -210,12 +186,7 @@ pub fn create_project(parent_path: String, name: String) -> Result<ProjectInfo, 
     }
 
     // Create structure
-    std::fs::create_dir_all(project_dir.join("flows"))
-        .map_err(|e| format!("Failed to create flows dir: {}", e))?;
-    std::fs::create_dir_all(project_dir.join("nodes"))
-        .map_err(|e| format!("Failed to create nodes dir: {}", e))?;
-    std::fs::create_dir_all(project_dir.join("nodes-src"))
-        .map_err(|e| format!("Failed to create nodes-src dir: {}", e))?;
+    twistedflow_project::ensure_project_dirs(&project_dir)?;
 
     // twistedflow.toml
     let toml = format!("name = \"{}\"\n", name);
@@ -259,16 +230,11 @@ pub fn create_project(parent_path: String, name: String) -> Result<ProjectInfo, 
 /// Open an existing project folder.
 #[tauri::command]
 pub fn open_project(path: String) -> Result<ProjectInfo, String> {
-    let expanded = expand_tilde(&path);
+    let expanded = twistedflow_project::expand_tilde(Path::new(&path));
     let project_path = expanded.as_path();
-    if !project_path.join("twistedflow.toml").exists() {
-        return Err(format!(
-            "Not a TwistedFlow project (missing twistedflow.toml in {})",
-            project_path.display()
-        ));
-    }
-    ensure_project_dirs(project_path)?;
-    let config = read_project_config(project_path)?;
+    let project_path = twistedflow_project::validate_project_dir(project_path)?;
+    twistedflow_project::ensure_project_dirs(&project_path)?;
+    let config = read_project_config(&project_path)?;
     let canonical = project_path.to_string_lossy().to_string();
     Ok(ProjectInfo {
         path: canonical,
@@ -339,111 +305,7 @@ pub fn list_flows(project_path: String) -> Result<Vec<FlowSummary>, String> {
 /// `{project}/nodes-src/*/Cargo.toml`.
 #[tauri::command]
 pub fn list_custom_nodes(project_path: String) -> Result<Vec<CustomNodeAsset>, String> {
-    let project_dir = Path::new(&project_path);
-    ensure_project_dirs(project_dir)?;
-
-    let mut assets: BTreeMap<String, CustomNodeAsset> = BTreeMap::new();
-    let nodes_dir = project_dir.join("nodes");
-    let sources_dir = project_dir.join("nodes-src");
-
-    if let Ok(entries) = std::fs::read_dir(&nodes_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("wasm") {
-                continue;
-            }
-
-            let id = path
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("custom-node")
-                .to_string();
-            let wasm_path = path.to_string_lossy().to_string();
-
-            let (status, can_use, nodes, error) = match twistedflow_engine::validate_wasm(&path) {
-                Ok(nodes) => {
-                    let nodes = nodes
-                        .into_iter()
-                        .map(|(type_id, name)| CustomNodeSummary { type_id, name })
-                        .collect::<Vec<_>>();
-                    ("loaded".to_string(), true, nodes, None)
-                }
-                Err(e) => ("invalid".to_string(), false, Vec::new(), Some(e)),
-            };
-
-            let name = nodes
-                .first()
-                .map(|n| n.name.clone())
-                .unwrap_or_else(|| id.clone());
-
-            assets.insert(
-                id.clone(),
-                CustomNodeAsset {
-                    id,
-                    name,
-                    wasm_path: Some(wasm_path),
-                    source_path: None,
-                    status,
-                    can_use,
-                    can_build: false,
-                    can_open_source: false,
-                    nodes,
-                    error,
-                },
-            );
-        }
-    }
-
-    if let Ok(entries) = std::fs::read_dir(&sources_dir) {
-        for entry in entries.flatten() {
-            let source_path = entry.path();
-            let cargo_toml = source_path.join("Cargo.toml");
-            if !cargo_toml.exists() {
-                continue;
-            }
-
-            let toml = std::fs::read_to_string(&cargo_toml).unwrap_or_default();
-            if !toml.contains("twistedflow-plugin") {
-                continue;
-            }
-
-            let source_name = source_path
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("custom-node")
-                .to_string();
-            let crate_name = parse_crate_name(&toml).unwrap_or_else(|| source_name.clone());
-            let artifact_id = crate_name.replace('-', "_");
-            let source_path_str = source_path.to_string_lossy().to_string();
-
-            match assets.get_mut(&artifact_id) {
-                Some(asset) => {
-                    asset.source_path = Some(source_path_str);
-                    asset.can_build = true;
-                    asset.can_open_source = true;
-                }
-                None => {
-                    assets.insert(
-                        artifact_id.clone(),
-                        CustomNodeAsset {
-                            id: artifact_id,
-                            name: source_name,
-                            wasm_path: None,
-                            source_path: Some(source_path_str),
-                            status: "draft".to_string(),
-                            can_use: false,
-                            can_build: true,
-                            can_open_source: true,
-                            nodes: Vec::new(),
-                            error: None,
-                        },
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(assets.into_values().collect())
+    twistedflow_project::list_custom_node_assets(Path::new(&project_path))
 }
 
 /// Read a single flow file.
@@ -810,41 +672,4 @@ fn sanitize_filename(name: &str) -> String {
         })
         .collect::<String>()
         .to_lowercase()
-}
-
-fn ensure_project_dirs(project_path: &Path) -> Result<(), String> {
-    std::fs::create_dir_all(project_path.join("flows"))
-        .map_err(|e| format!("Failed to create flows dir: {}", e))?;
-    std::fs::create_dir_all(project_path.join("nodes"))
-        .map_err(|e| format!("Failed to create nodes dir: {}", e))?;
-    std::fs::create_dir_all(project_path.join("nodes-src"))
-        .map_err(|e| format!("Failed to create nodes-src dir: {}", e))?;
-    Ok(())
-}
-
-fn parse_crate_name(toml: &str) -> Option<String> {
-    let mut in_package = false;
-    for line in toml.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('[') {
-            in_package = trimmed == "[package]";
-            continue;
-        }
-        if in_package && trimmed.starts_with("name") {
-            if let Some(eq) = trimmed.find('=') {
-                let rest = trimmed[eq + 1..].trim();
-                return Some(rest.trim_matches('"').trim_matches('\'').to_string());
-            }
-        }
-    }
-    None
-}
-
-fn expand_tilde(path: &str) -> std::path::PathBuf {
-    if path.starts_with("~/") {
-        if let Some(home) = std::env::var_os("HOME") {
-            return std::path::PathBuf::from(home).join(&path[2..]);
-        }
-    }
-    std::path::PathBuf::from(path)
 }

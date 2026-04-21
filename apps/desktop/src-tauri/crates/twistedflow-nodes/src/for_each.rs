@@ -1,12 +1,12 @@
 //! ForEach nodes — sequential and parallel array iteration.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult, Outputs};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult, Outputs};
+use twistedflow_macros::node;
 
 // ── Sequential ───────────────────────────────────────────────────────
 
@@ -29,7 +29,9 @@ impl Node for ForEachSeqNode {
             let items = match array_value {
                 Some(Value::Array(arr)) => arr,
                 other => {
-                    let got = other.map(|v| v.to_string()).unwrap_or_else(|| "null".into());
+                    let got = other
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "null".into());
                     return NodeResult::Error {
                         message: format!("ForEach input is not an array (got {})", got),
                         raw_response: None,
@@ -37,7 +39,10 @@ impl Node for ForEachSeqNode {
                 }
             };
 
-            let body_start = ctx.index.next_exec(ctx.node_id, "exec-body").map(|s| s.to_owned());
+            let body_start = ctx
+                .index
+                .next_exec(ctx.node_id, "exec-body")
+                .map(|s| s.to_owned());
             let node_id = ctx.node_id.to_owned();
 
             for (i, item) in items.iter().enumerate() {
@@ -87,7 +92,9 @@ impl Node for ForEachParNode {
             let items = match array_value {
                 Some(Value::Array(arr)) => arr,
                 other => {
-                    let got = other.map(|v| v.to_string()).unwrap_or_else(|| "null".into());
+                    let got = other
+                        .map(|v| v.to_string())
+                        .unwrap_or_else(|| "null".into());
                     return NodeResult::Error {
                         message: format!("ForEach input is not an array (got {})", got),
                         raw_response: None,
@@ -95,7 +102,10 @@ impl Node for ForEachParNode {
                 }
             };
 
-            let body_start = ctx.index.next_exec(ctx.node_id, "exec-body").map(|s| s.to_owned());
+            let body_start = ctx
+                .index
+                .next_exec(ctx.node_id, "exec-body")
+                .map(|s| s.to_owned());
             let node_id = ctx.node_id.to_owned();
 
             let mut handles = Vec::with_capacity(items.len());

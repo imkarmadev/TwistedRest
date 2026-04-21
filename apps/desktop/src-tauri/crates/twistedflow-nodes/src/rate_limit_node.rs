@@ -6,18 +6,17 @@
 //!                  ├── exec-pass    → Route → handlers
 //!                  └── exec-limited → Send Response (429, rateLimitHeaders)
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::time::Instant;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 /// Global rate limit state: key → list of request timestamps.
-static RATE_LIMIT_STATE: std::sync::LazyLock<
-    std::sync::Mutex<HashMap<String, Vec<Instant>>>,
-> = std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+static RATE_LIMIT_STATE: std::sync::LazyLock<std::sync::Mutex<HashMap<String, Vec<Instant>>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
 
 #[node(
     name = "Rate Limit",
@@ -54,10 +53,7 @@ impl Node for RateLimitNode {
                     .and_then(|v| v.as_str())
                     .unwrap_or("ip");
 
-                let headers = ctx
-                    .resolve_input("in:headers")
-                    .await
-                    .unwrap_or(Value::Null);
+                let headers = ctx.resolve_input("in:headers").await.unwrap_or(Value::Null);
 
                 match key_source {
                     "header" => {

@@ -1,6 +1,6 @@
-# TwistedFlow Plugin Examples
+# TwistedFlow Custom Node Examples
 
-Reference implementations of TwistedFlow WASM plugins. Copy one, or use them as a template for your own.
+Reference implementations of TwistedFlow WASM custom nodes. Copy one, or use them as a template for your own.
 
 | Example | What it teaches |
 |---------|----------------|
@@ -15,9 +15,7 @@ From inside any example directory:
 twistedflow plugin build
 ```
 
-This compiles to `wasm32-wasip1` with release optimizations. Run it from inside
-`<project>/nodes-src/<plugin>` or pass `--project /path/to/project` to install
-the built `.wasm` into that project's `nodes/` directory.
+This compiles to `wasm32-wasip1` with release optimizations. Run it from inside `<project>/nodes-src/<plugin>` or pass `--project /path/to/project` to install the built `.wasm` into that project's `nodes/` directory.
 
 ## Write your own
 

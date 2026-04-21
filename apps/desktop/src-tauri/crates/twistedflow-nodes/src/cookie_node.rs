@@ -4,11 +4,11 @@
 //!   - parse: reads Cookie header → out:cookies object
 //!   - set:   builds Set-Cookie header strings → out:setCookieHeaders
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Cookie",
@@ -40,10 +40,7 @@ impl Node for CookieNode {
 
 /// Parse mode: read Cookie header, split into name=value pairs.
 async fn execute_parse(ctx: &NodeCtx<'_>) -> NodeResult {
-    let headers = ctx
-        .resolve_input("in:headers")
-        .await
-        .unwrap_or(Value::Null);
+    let headers = ctx.resolve_input("in:headers").await.unwrap_or(Value::Null);
 
     let cookie_str = headers
         .get("cookie")
@@ -113,10 +110,18 @@ async fn execute_set(ctx: &NodeCtx<'_>) -> NodeResult {
         if let Some(max_age) = cookie.get("maxAge").and_then(|v| v.as_u64()) {
             parts.push(format!("Max-Age={}", max_age));
         }
-        if cookie.get("httpOnly").and_then(|v| v.as_bool()).unwrap_or(false) {
+        if cookie
+            .get("httpOnly")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
             parts.push("HttpOnly".to_string());
         }
-        if cookie.get("secure").and_then(|v| v.as_bool()).unwrap_or(false) {
+        if cookie
+            .get("secure")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
+        {
             parts.push("Secure".to_string());
         }
         if let Some(same_site) = cookie.get("sameSite").and_then(|v| v.as_str()) {
@@ -143,13 +148,10 @@ async fn execute_set(ctx: &NodeCtx<'_>) -> NodeResult {
     NodeResult::Data(Some(result))
 }
 
-fn render_template(
-    template: &str,
-    inputs: &std::collections::HashMap<String, Value>,
-) -> String {
+fn render_template(template: &str, inputs: &std::collections::HashMap<String, Value>) -> String {
     let mut result = template.to_string();
     for (key, val) in inputs {
-        let placeholder = format!("#{{{}}}",  key);
+        let placeholder = format!("#{{{}}}", key);
         let replacement = match val {
             Value::String(s) => s.clone(),
             Value::Null => String::new(),

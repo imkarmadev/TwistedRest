@@ -3,12 +3,12 @@
 //! Reads _requestId from the OnEvent payload to find the correct
 //! response channel, then writes status + body to it.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 use crate::http_listen;
 
@@ -30,7 +30,8 @@ impl Node for SendResponseNode {
             let status = if let Some(val) = ctx.resolve_input("in:status").await {
                 val.as_u64().unwrap_or(200) as u16
             } else {
-                ctx.node_data.get("status")
+                ctx.node_data
+                    .get("status")
                     .and_then(|v| v.as_u64())
                     .unwrap_or(200) as u16
             };

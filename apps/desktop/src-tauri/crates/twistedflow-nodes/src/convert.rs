@@ -4,11 +4,11 @@
 //! as the executor's inline `convert_value` helper. Supported target types:
 //! "string", "number", "integer", "boolean", "json".
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Convert",
@@ -26,10 +26,7 @@ impl Node for ConvertNode {
         Box::pin(async move {
             let input = ctx.resolve_input("in:value").await.unwrap_or(Value::Null);
 
-            let target_type = ctx
-                .node_data
-                .get("targetType")
-                .and_then(|v| v.as_str());
+            let target_type = ctx.node_data.get("targetType").and_then(|v| v.as_str());
 
             let converted = convert_value(input, target_type);
             NodeResult::Data(Some(converted))

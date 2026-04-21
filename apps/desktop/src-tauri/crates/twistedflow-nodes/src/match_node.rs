@@ -1,10 +1,10 @@
 //! Match node — routes execution to a branch based on a value comparison.
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Match",
@@ -32,10 +32,7 @@ impl Node for MatchNode {
 
             let mut matched_handle = "exec-default".to_string();
             for (i, case) in cases.iter().enumerate() {
-                let case_val = case
-                    .get("value")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+                let case_val = case.get("value").and_then(|v| v.as_str()).unwrap_or("");
                 if match_str == case_val {
                     matched_handle = format!("exec-case:{}", i);
                     break;

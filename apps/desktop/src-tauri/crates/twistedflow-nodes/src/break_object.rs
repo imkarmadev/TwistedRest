@@ -6,8 +6,8 @@
 //! resolves the upstream object and returns it whole; the executor extracts the
 //! specific field by pin name.
 
-use twistedflow_macros::node;
 use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 use std::future::Future;
 use std::pin::Pin;

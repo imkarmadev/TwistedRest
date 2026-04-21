@@ -16,26 +16,26 @@
    * Material overlays — applied ON TOP of the native NSVisualEffectView
    * vibrancy that Tauri provides via window-vibrancy.
    *
-   * The base "Sidebar" material (the wallpaper blur) is drawn by macOS
+   * The base window material (the wallpaper blur) is drawn by macOS
    * itself behind everything. These CSS layers exist only to differentiate
    * regions of the window from each other — exactly how Mail.app makes its
-   * sidebar look denser than the message pane.
+   * chrome look denser than the message pane.
    *
    *   --material-window  → unused now (vibrancy provides the base)
-   *   --material-pane    → DARK tint for sidebars/inspector. Mimics Mail.app's
-   *                        "denser frosted" sidebar regions. Reads as a
+   *   --material-pane    → DARK tint for floating panels/inspector. Mimics
+   *                        Mail.app's denser frosted chrome. Reads as a
    *                        dark wash sitting on top of the vibrancy.
    *   --material-toolbar → very subtle dark wash for floating glass capsules
    *   --node-glass       → almost opaque for node readability
    */
   /*
    * Solid surface tokens — no transparency anywhere. The window is one
-   * dark base color with the sidebar/inspector lifted as a slightly
+   * dark base color with the floating panels/inspector lifted as a slightly
    * lighter shade, and the canvas body slightly darker.
    *
    *   --bg            window background, behind canvas
    *   --canvas-body   the actual canvas surface (where nodes live)
-   *   --material-pane sidebar / inspector island fill
+   *   --material-pane floating panel / inspector island fill
    */
   --bg: #1c2030;
   --canvas-body: #14182a;
@@ -81,7 +81,6 @@
 
   /* ── Layout ──────────────────────────────────────────── */
   --titlebar-h: 38px;
-  --sidebar-w: 240px;
 
   /* ── Radius ──────────────────────────────────────────── */
   --radius-sm: 6px;

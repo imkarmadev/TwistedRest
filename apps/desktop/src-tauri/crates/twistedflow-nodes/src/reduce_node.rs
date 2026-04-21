@@ -12,12 +12,12 @@
 //!   - "unique": deduplicate items
 //!   - "groupBy": group items by a field into an object
 
-use twistedflow_macros::node;
-use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
+use twistedflow_macros::node;
 
 #[node(
     name = "Reduce",
@@ -75,28 +75,20 @@ impl Node for ReduceNode {
                         .join(separator);
                     Value::String(joined)
                 }
-                "min" => {
-                    items
-                        .iter()
-                        .filter_map(|v| v.as_f64())
-                        .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                        .map(|n| json!(n))
-                        .unwrap_or(Value::Null)
-                }
-                "max" => {
-                    items
-                        .iter()
-                        .filter_map(|v| v.as_f64())
-                        .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
-                        .map(|n| json!(n))
-                        .unwrap_or(Value::Null)
-                }
-                "first" => {
-                    items.first().cloned().unwrap_or(Value::Null)
-                }
-                "last" => {
-                    items.last().cloned().unwrap_or(Value::Null)
-                }
+                "min" => items
+                    .iter()
+                    .filter_map(|v| v.as_f64())
+                    .min_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                    .map(|n| json!(n))
+                    .unwrap_or(Value::Null),
+                "max" => items
+                    .iter()
+                    .filter_map(|v| v.as_f64())
+                    .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                    .map(|n| json!(n))
+                    .unwrap_or(Value::Null),
+                "first" => items.first().cloned().unwrap_or(Value::Null),
+                "last" => items.last().cloned().unwrap_or(Value::Null),
                 "flatten" => {
                     let mut flat = Vec::new();
                     for item in &items {

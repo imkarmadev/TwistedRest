@@ -1,8 +1,8 @@
 /**
  * Project Settings modal — file-based project model.
  *
- * Sidebar lists environments (from .env.json files in the project directory).
- * Selecting one opens an editor for its key/value vars.
+ * Lists environments (from .env.json files in the project directory) and
+ * opens an editor for their key/value vars.
  * All mutations go through Tauri invoke commands.
  */
 

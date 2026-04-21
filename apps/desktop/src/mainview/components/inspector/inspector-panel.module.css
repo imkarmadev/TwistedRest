@@ -1,5 +1,5 @@
 .panel {
-  /* Full-height inset island, mirrored from the sidebar */
+  /* Full-height inset island on the right edge of the canvas shell */
   position: absolute;
   top: 8px;
   right: 8px;
