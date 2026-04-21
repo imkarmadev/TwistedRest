@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TwistedFlow — Visual Flow Engine</title>
-  <meta name="description" content="Visual flow engine — build APIs, servers, automations, and test suites by wiring nodes. Rust executor, WASM plugins, compile to standalone binaries." />
-  <meta property="og:title" content="TwistedFlow — Visual Flow Engine" />
-  <meta property="og:description" content="Wire nodes, build flows, compile to binaries. 36 built-in nodes + WASM plugins. Desktop app + CLI." />
+  <title>TwistedFlow — Canvas-First Flow Engine</title>
+  <meta name="description" content="Canvas-first flow engine for APIs, servers, automations, and tools. Desktop app + CLI, shared Rust runtime, project-local custom nodes, compile to standalone binaries." />
+  <meta property="og:title" content="TwistedFlow — Canvas-First Flow Engine" />
+  <meta property="og:description" content="Build flows, subflows, and project-local custom nodes. 46 built-in nodes, shared Rust core, desktop app + CLI." />
   <meta property="og:type" content="website" />
   <link rel="icon" href="public/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="public/icon-192.png" />
@@ -395,14 +395,14 @@
   <!-- Hero -->
   <section class="hero">
     <div class="container">
-      <div class="hero-badge">Open Source &middot; macOS &middot; Linux</div>
+      <div class="hero-badge">Open Source &middot; Desktop App + CLI &middot; macOS + Linux</div>
       <h1>
-        Visual flow engine<br />
-        <span class="highlight">for everything</span>
+        Canvas-first flow engine<br />
+        <span class="highlight">for real projects</span>
       </h1>
       <p>
-        Build APIs, servers, automations, and test suites by wiring nodes on a canvas.
-        Rust executor. WASM plugins. Compile flows to standalone binaries.
+        Build APIs, HTTP servers, automations, and internal tools by wiring nodes on a canvas.
+        Run them in the desktop app, headlessly in the CLI, or compile them to standalone binaries.
       </p>
       <div class="hero-actions">
         <a href="https://github.com/imkarmadev/TwistedFlow/releases" class="btn btn-primary" target="_blank">
@@ -415,7 +415,7 @@
 
       <div class="hero-visual">
         <div class="window">
-          <img src="public/screenshot.png" alt="TwistedFlow — visual API workflow builder with nodes, Match routing, events, and inspector" style="width:100%;height:100%;object-fit:cover;" />
+          <img src="public/screenshot.png" alt="TwistedFlow desktop app with flow canvas, project bar, bottom workspace, and inspector" style="width:100%;height:100%;object-fit:cover;" />
         </div>
       </div>
     </div>
@@ -425,63 +425,63 @@
   <section class="features" id="features">
     <div class="container">
       <div class="section-header">
-        <h2>Built for builders</h2>
-        <p>HTTP clients, servers, system automations, test suites — all visual, all compiled to native binaries.</p>
+        <h2>Built for shipped workflows</h2>
+        <p>Canvas editing when it helps, Rust and CLI when it matters, project files on disk instead of hidden state.</p>
       </div>
 
       <div class="features-grid">
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(76, 194, 255, 0.15); color: var(--accent);">{ }</div>
-          <h3>Visual Canvas</h3>
-          <p>Drag nodes, wire pins, see data flow. Two edge types: white exec edges for control flow, colored data edges for typed values.</p>
+          <h3>Canvas-First Editor</h3>
+          <p>Top project bar, bottom workspace, right inspector. Flows, subflows, console, problems, and custom nodes stay in one focused workspace.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(46, 204, 113, 0.15); color: var(--green);">%</div>
-          <h3>Template Tokens</h3>
-          <p>Type <code style="color:var(--pink)">#{userId}</code> in any URL, header, or body field. Input pins appear automatically. Wire values from upstream responses.</p>
+          <h3>Typed Data Wiring</h3>
+          <p>Exec edges drive control flow, typed data pins carry values. Variables, schema-aware pins, and drag-to-create node spawning keep larger graphs manageable.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(193, 119, 255, 0.15); color: var(--purple);">Z</div>
-          <h3>Zod Schema Validation</h3>
-          <p>Define response schemas in Zod. Output pins generate from fields. Paste sample JSON to auto-infer. One-click fix from failed responses.</p>
+          <h3>Subflows + Reuse</h3>
+          <p>Extract repeated graph logic into subflows, keep heavy or complex behavior inside Rust custom nodes, and compose both in the same project.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(255, 167, 38, 0.15); color: var(--orange);">||</div>
-          <h3>Parallel & Sequential Loops</h3>
-          <p>ForEach nodes iterate arrays with body sub-chains. Sequential for ordered processing, parallel for speed. Break Object + Convert handle the types.</p>
+          <h3>HTTP + Server Nodes</h3>
+          <p>HTTP Request for clients, HTTP Listen and Route for servers, plus auth, CORS, cookies, body parsing, rate limiting, redirects, and static file serving.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(255, 95, 177, 0.15); color: var(--pink);">!</div>
-          <h3>Events & Routing</h3>
-          <p>Emit/On Event for decoupled pub/sub. Match node for switch/case routing on any value — including HTTP status codes. No spaghetti wiring.</p>
+          <h3>Flow Control That Scales</h3>
+          <p>If/Else, Match, Retry, Try/Catch, events, and sequential or parallel loops cover the orchestration layer without forcing every detail into the graph.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(255, 71, 87, 0.15); color: var(--red);">fn</div>
-          <h3>WASM Plugins</h3>
-          <p>Write custom nodes in Rust, compile to .wasm, drop in the plugins folder. They appear in the palette automatically. Sandboxed, fast, cross-platform.</p>
+          <h3>Project-Local Custom Nodes</h3>
+          <p>Custom nodes live with the project: source in <code>nodes-src/</code>, built artifacts in <code>nodes/</code>. Create and build from the app or the CLI with the same Rust implementation.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(76, 194, 255, 0.15); color: var(--accent);">@</div>
-          <h3>Environments (.env)</h3>
-          <p>Standard .env files — .env for default, .env.dev for dev, .env.prod for prod. Edit in the app or your editor. Git-native projects.</p>
+          <h3>Folder-Based Projects</h3>
+          <p><code>twistedflow.toml</code>, <code>flows/</code>, <code>nodes/</code>, <code>nodes-src/</code>, and standard <code>.env</code> files. Portable, git-friendly, and easy to reason about.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(46, 204, 113, 0.15); color: var(--green);">&gt;_</div>
-          <h3>CLI + Build</h3>
-          <p><code>twistedflow-cli run flow.json</code> for headless execution. <code>twistedflow-cli build</code> compiles flows to standalone 20MB binaries. Ship anywhere.</p>
+          <h3>Desktop + CLI, Same Core</h3>
+          <p>The desktop app and CLI both call the same shared Rust runtime and builder crates. No desktop-to-CLI shelling, no duplicate execution logic.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(193, 119, 255, 0.15); color: var(--purple);">!</div>
-          <h3>HTTP Server + Testing</h3>
-          <p>HTTP Listen starts a server as a process node. Assert and Assert Type nodes for test suites. Try/Catch for error handling. If/Else for branching.</p>
+          <h3>Run, Inspect, Build</h3>
+          <p>Console and Problems tabs surface runtime output, Log nodes route into the app console, and the top Build action compiles a flow into a standalone binary.</p>
         </div>
       </div>
     </div>
@@ -491,8 +491,8 @@
   <section id="nodes">
     <div class="container">
       <div class="section-header">
-        <h2>36 built-in nodes + WASM plugins</h2>
-        <p>Flow control, HTTP, CLI tools, string processing, data transforms, system I/O, testing — plus custom nodes via Rust WASM plugins.</p>
+        <h2>46 built-in nodes + project-local custom nodes</h2>
+        <p>Flow control, HTTP clients and servers, CLI tools, string processing, data transforms, variables, system I/O, testing, and your own Rust nodes.</p>
       </div>
 
       <div class="nodes-grid">
@@ -500,7 +500,15 @@
         <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> HTTP Request</div>
         <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> HTTP Listen</div>
         <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Send Response</div>
-        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Route Match</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Route</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Parse Body</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Set Headers</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> CORS</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Verify Auth</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Rate Limit</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Cookie</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Redirect</div>
+        <div class="node-pill"><div class="node-dot" style="background: var(--accent);"></div> Serve Static</div>
         <div class="node-pill"><div class="node-dot" style="background: var(--orange);"></div> Match</div>
         <div class="node-pill"><div class="node-dot" style="background: var(--orange);"></div> If / Else</div>
         <div class="node-pill"><div class="node-dot" style="background: var(--orange);"></div> Try / Catch</div>
@@ -527,6 +535,7 @@
         <div class="node-pill"><div class="node-dot" style="background: #bae6fd;"></div> Map</div>
         <div class="node-pill"><div class="node-dot" style="background: #bae6fd;"></div> Merge</div>
         <div class="node-pill"><div class="node-dot" style="background: #bae6fd;"></div> Reduce</div>
+        <div class="node-pill"><div class="node-dot" style="background: #bae6fd;"></div> Function</div>
         <div class="node-pill"><div class="node-dot" style="background: #bae6fd;"></div> Tap</div>
         <div class="node-pill"><div class="node-dot" style="background: #a5f3fc;"></div> Log</div>
         <div class="node-pill"><div class="node-dot" style="background: #a5f3fc;"></div> Print</div>
@@ -544,8 +553,8 @@
   <!-- CTA -->
   <section class="cta">
     <div class="container">
-      <h2>Start building flows</h2>
-      <p>Free, open source. Desktop app + CLI + compile to binary. Built with Tauri, React, and Rust.</p>
+      <h2>Build flows that ship</h2>
+      <p>Open source. Desktop app + CLI. Shared Rust core. Project-local custom nodes. Compile flows to standalone binaries when you are ready to ship.</p>
       <div class="cta-actions">
         <a href="https://github.com/imkarmadev/TwistedFlow/releases" class="btn btn-primary" target="_blank">
           Download (macOS / Linux)
@@ -560,7 +569,7 @@
   <!-- Footer -->
   <footer>
     <div class="container">
-      <p>TwistedFlow &mdash; Open source, MIT licensed. Created by human + robot with &lt;3</p>
+      <p>TwistedFlow &mdash; Open source, MIT licensed.</p>
     </div>
   </footer>
 

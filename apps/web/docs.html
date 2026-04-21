@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Docs — TwistedFlow</title>
-  <meta name="description" content="TwistedFlow documentation — getting started, node reference, CLI, WASM plugins, project structure." />
+  <meta name="description" content="TwistedFlow documentation — getting started, node reference, CLI, custom nodes, and project structure." />
   <link rel="icon" href="public/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="192x192" href="public/icon-192.png" />
   <link rel="apple-touch-icon" href="public/apple-touch-icon.png" />
@@ -557,8 +557,8 @@
       </div>
 
       <div class="sidebar-group">
-        <div class="sidebar-group-title">Plugins</div>
-        <a class="sidebar-link" href="#plugins" data-section="plugins">WASM plugins</a>
+        <div class="sidebar-group-title">Custom Nodes</div>
+        <a class="sidebar-link" href="#plugins" data-section="plugins">Project-local custom nodes</a>
       </div>
 
       <div class="sidebar-group">
@@ -573,11 +573,11 @@
       <!-- ═══ GETTING STARTED ═══ -->
       <section class="doc-section active" id="getting-started">
         <h1>Getting Started</h1>
-        <p class="subtitle">Install TwistedFlow, create your first flow, and run it.</p>
+        <p class="subtitle">Install TwistedFlow, create your first flow, and run it in the desktop app or the CLI.</p>
 
         <h2 id="gs-overview">What is TwistedFlow?</h2>
         <p>TwistedFlow is a visual flow engine. You build automations, API clients, HTTP servers, test suites, and system tools by wiring nodes on a canvas. Then you run them in the desktop app, headlessly via CLI, or compile to standalone binaries.</p>
-        <p>There are <strong>46 built-in nodes</strong> covering flow control, HTTP client/server, REST API server (routing, auth, CORS, rate limiting), CLI tools, string processing, data manipulation, variables, system I/O, and testing. You can extend TwistedFlow with custom nodes via <strong>WASM plugins</strong>.</p>
+        <p>There are <strong>46 built-in nodes</strong> covering flow control, HTTP client/server, REST API server (routing, auth, CORS, rate limiting), CLI tools, string processing, data manipulation, variables, system I/O, and testing. You can extend TwistedFlow with project-local <strong>custom nodes</strong> written in Rust and compiled to WASM.</p>
 
         <h2 id="gs-install">Installation</h2>
 
@@ -619,7 +619,7 @@ bun run dev</code></pre>
         <h2 id="gs-first-flow">Your first flow</h2>
 
         <h3>1. Create a project</h3>
-        <p>Open TwistedFlow and create a new project. This creates a folder on disk with a <code>twistedflow.toml</code> file and a <code>flows/</code> directory.</p>
+        <p>Open TwistedFlow and create a new project. This creates a folder on disk with <code>twistedflow.toml</code>, <code>flows/</code>, <code>nodes/</code>, and <code>nodes-src/</code> directories.</p>
 
         <h3>2. Add nodes</h3>
         <p>Right-click the canvas (or press <strong>Space</strong>) to open the node palette. Add these nodes:</p>
@@ -633,10 +633,10 @@ bun run dev</code></pre>
         <p>Connect the exec pins (white diamonds) in order: Start &rarr; HTTP Request &rarr; Log. Then drag the HTTP Request's <code>body</code> output pin to the Log's <code>value</code> input pin.</p>
 
         <h3>4. Run it</h3>
-        <p>Click the <strong>Run</strong> button (or use the Start node's play button). The flow executes and you'll see the JSON response in the console panel (toggle with <kbd>`</kbd> backtick key).</p>
+        <p>Click the <strong>Run</strong> action in the top project bar (or use the Start node's play button). The flow executes and you'll see the JSON response in the Console tab in the bottom workspace (toggle with <kbd>`</kbd> backtick key).</p>
 
         <h3>5. Run from CLI</h3>
-        <pre><code>twistedflow-cli run ~/my-project/flows/main.flow.json</code></pre>
+        <pre><code>twistedflow run ~/my-project/flows/main.flow.json</code></pre>
 
         <h2>Keyboard shortcuts</h2>
         <table class="doc-table">
@@ -1042,7 +1042,7 @@ bun run dev</code></pre>
 
           <div class="node-card">
             <div class="node-card-name">Stdin</div>
-            <div class="node-card-desc">Reads from standard input. Works with piped data (<code>cat data.json | twistedflow-cli run flow.json</code>). Outputs raw content, split lines, and parsed JSON.</div>
+            <div class="node-card-desc">Reads from standard input. Works with piped data (<code>cat data.json | twistedflow run flow.json</code>). Outputs raw content, split lines, and parsed JSON.</div>
             <div class="pin-list">
               <span class="pin-tag exec">&rarr; exec-in</span>
               <span class="pin-tag exec">exec-out &rarr;</span>
@@ -1254,15 +1254,15 @@ bun run dev</code></pre>
         <h1>CLI Reference</h1>
         <p class="subtitle">Run flows headlessly and compile them to standalone binaries.</p>
 
-        <p>The CLI binary is <code>twistedflow-cli</code>. It shares the same Rust engine as the desktop app &mdash; same executor, same nodes, same WASM plugin support. Download it from <a href="https://github.com/imkarmadev/TwistedFlow/releases" target="_blank">GitHub Releases</a> (<code>twistedflow-cli-&lt;platform&gt;.tar.gz</code>) and install:</p>
+        <p>The release archive contains the CLI binary <code>twistedflow-cli</code>, but the recommended install name is <code>twistedflow</code>. It shares the same Rust runtime and builder crates as the desktop app. Download it from <a href="https://github.com/imkarmadev/TwistedFlow/releases" target="_blank">GitHub Releases</a> (<code>twistedflow-cli-&lt;platform&gt;.tar.gz</code>) and install:</p>
         <pre><code><span class="comment"># macOS Apple Silicon</span>
 tar -xzf twistedflow-cli-aarch64-apple-darwin.tar.gz
 sudo mv twistedflow-cli /usr/local/bin/twistedflow</code></pre>
 
-        <h2 id="cli-run">twistedflow-cli run</h2>
+        <h2 id="cli-run">twistedflow run</h2>
         <p>Run a <code>.flow.json</code> file headlessly.</p>
 
-        <pre><code><span class="cmd">twistedflow-cli</span> run &lt;file&gt; [options]</code></pre>
+        <pre><code><span class="cmd">twistedflow</span> run &lt;file&gt; [options]</code></pre>
 
         <table class="doc-table">
           <thead><tr><th>Option</th><th>Description</th></tr></thead>
@@ -1270,7 +1270,7 @@ sudo mv twistedflow-cli /usr/local/bin/twistedflow</code></pre>
             <tr><td><code>&lt;file&gt;</code></td><td>Path to the <code>.flow.json</code> file</td></tr>
             <tr><td><code>-e, --env KEY=VAL</code></td><td>Set environment variables (repeatable)</td></tr>
             <tr><td><code>--base-url URL</code></td><td>Base URL for HTTP requests</td></tr>
-            <tr><td><code>--plugins DIR</code></td><td>Plugin directories (comma-separated). Default: <code>~/.twistedflow/plugins</code></td></tr>
+            <tr><td><code>--plugins DIR</code></td><td>Extra plugin directories (comma-separated). Project <code>nodes/</code> is loaded automatically.</td></tr>
             <tr><td><code>-q, --quiet</code></td><td>Only print errors</td></tr>
             <tr><td><code>-- [args]</code></td><td>Pass arguments through to the flow (accessible via ParseArgs node)</td></tr>
           </tbody>
@@ -1278,28 +1278,28 @@ sudo mv twistedflow-cli /usr/local/bin/twistedflow</code></pre>
 
         <h3>Examples</h3>
         <pre><code><span class="comment"># Basic run</span>
-<span class="cmd">twistedflow-cli</span> run ./flows/main.flow.json
+<span class="cmd">twistedflow</span> run ./flows/main.flow.json
 
 <span class="comment"># With env vars</span>
-<span class="cmd">twistedflow-cli</span> run ./flows/main.flow.json <span class="flag">-e</span> API_KEY=abc123 <span class="flag">-e</span> BASE_URL=https://api.example.com
+<span class="cmd">twistedflow</span> run ./flows/main.flow.json <span class="flag">-e</span> API_KEY=abc123 <span class="flag">-e</span> BASE_URL=https://api.example.com
 
 <span class="comment"># Pass arguments to the flow (ParseArgs node reads these)</span>
-<span class="cmd">twistedflow-cli</span> run ./flows/my-tool.flow.json <span class="flag">--</span> --input data.json --verbose
+<span class="cmd">twistedflow</span> run ./flows/my-tool.flow.json <span class="flag">--</span> --input data.json --verbose
 
 <span class="comment"># Pipe data into a flow (Stdin node reads this)</span>
-cat urls.txt | <span class="cmd">twistedflow-cli</span> run ./flows/check-urls.flow.json
+cat urls.txt | <span class="cmd">twistedflow</span> run ./flows/check-urls.flow.json
 
 <span class="comment"># With base URL and quiet mode</span>
-<span class="cmd">twistedflow-cli</span> run ./flows/health-check.flow.json <span class="flag">--base-url</span> https://api.example.com <span class="flag">-q</span></code></pre>
+<span class="cmd">twistedflow</span> run ./flows/health-check.flow.json <span class="flag">--base-url</span> https://api.example.com <span class="flag">-q</span></code></pre>
 
         <h3>Output</h3>
         <p>Node status is printed to stderr. Log/Print node output goes to stdout. This means you can pipe flow output:</p>
-        <pre><code><span class="cmd">twistedflow-cli</span> run ./flows/transform.flow.json | jq '.result'</code></pre>
+        <pre><code><span class="cmd">twistedflow</span> run ./flows/transform.flow.json | jq '.result'</code></pre>
 
-        <h2 id="cli-build">twistedflow-cli build</h2>
+        <h2 id="cli-build">twistedflow build</h2>
         <p>Compile a project into a standalone binary. The binary embeds the flow JSON and environment variables &mdash; just run it, no arguments needed.</p>
 
-        <pre><code><span class="cmd">twistedflow-cli</span> build &lt;project&gt; [options]</code></pre>
+        <pre><code><span class="cmd">twistedflow</span> build &lt;project&gt; [options]</code></pre>
 
         <table class="doc-table">
           <thead><tr><th>Option</th><th>Description</th></tr></thead>
@@ -1314,19 +1314,19 @@ cat urls.txt | <span class="cmd">twistedflow-cli</span> run ./flows/check-urls.f
 
         <h3>Examples</h3>
         <pre><code><span class="comment"># Build with defaults</span>
-<span class="cmd">twistedflow-cli</span> build ~/my-project <span class="flag">-o</span> my-app
+<span class="cmd">twistedflow</span> build ~/my-project <span class="flag">-o</span> my-app
 
 <span class="comment"># Build specific flow with prod env</span>
-<span class="cmd">twistedflow-cli</span> build ~/my-project <span class="flag">-o</span> health-checker <span class="flag">--flow</span> health-check <span class="flag">--env</span> prod
+<span class="cmd">twistedflow</span> build ~/my-project <span class="flag">-o</span> health-checker <span class="flag">--flow</span> health-check <span class="flag">--env</span> prod
 
 <span class="comment"># Build optimized release binary</span>
-<span class="cmd">twistedflow-cli</span> build ~/my-project <span class="flag">-o</span> my-app <span class="flag">--release</span>
+<span class="cmd">twistedflow</span> build ~/my-project <span class="flag">-o</span> my-app <span class="flag">--release</span>
 
 <span class="comment"># Run the compiled binary</span>
 ./my-app</code></pre>
 
         <div class="callout">
-          <p><strong>Tip:</strong> The desktop app also has a Build button in the canvas toolbar that opens a native save dialog and compiles via CLI under the hood.</p>
+          <p><strong>Tip:</strong> The desktop app also has a Build action in the top project bar. It uses the same shared Rust builder directly, not a CLI subprocess.</p>
         </div>
 
         <h2>Exit codes</h2>
@@ -1341,26 +1341,41 @@ cat urls.txt | <span class="cmd">twistedflow-cli</span> run ./flows/check-urls.f
 
       <!-- ═══ PLUGINS ═══ -->
       <section class="doc-section" id="plugins">
-        <h1>WASM Plugins</h1>
-        <p class="subtitle">Extend TwistedFlow with custom nodes written in Rust. One CLI command scaffolds, builds, and installs.</p>
+        <h1>Custom Nodes</h1>
+        <p class="subtitle">Extend TwistedFlow with project-local custom nodes written in Rust and compiled to WASM. Author them from the desktop app or the CLI.</p>
 
         <h2>How it works</h2>
         <p>TwistedFlow uses <a href="https://wasmtime.dev" target="_blank">wasmtime</a> to load WebAssembly modules as custom node types. Plugins appear in the node palette alongside built-in nodes, with no runtime performance penalty vs built-in Rust nodes for most workloads.</p>
 
-        <h2>Plugin locations</h2>
-        <p>Plugins are loaded from two directories on every flow run:</p>
-        <ol>
-          <li><code>~/.twistedflow/plugins/</code> &mdash; global plugins, available in all projects</li>
-          <li><code>{project}/nodes/</code> &mdash; project-scoped plugins, only available in that project</li>
-        </ol>
+        <h2>Project-local layout</h2>
+        <p>Custom nodes are project assets. TwistedFlow loads built <code>.wasm</code> files from the current project's <code>nodes/</code> directory. Editable Rust source lives in <code>nodes-src/</code>.</p>
+        <div class="file-tree">
+          <span class="dir">my-project/</span><br>
+          &nbsp;&nbsp;<span class="dir">nodes/</span> <span class="note">&mdash; built and installed .wasm custom nodes</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">my-plugin.wasm</span><br>
+          &nbsp;&nbsp;<span class="dir">nodes-src/</span> <span class="note">&mdash; optional editable Rust source</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">my-plugin/</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">Cargo.toml</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">src/lib.rs</span>
+        </div>
 
-        <h2>Quick start</h2>
-        <p>Three commands from empty directory to installed plugin:</p>
+        <h2>Quick start from CLI</h2>
+        <p>Three commands from an empty directory to an installed custom node:</p>
         <pre><code><span class="cmd">twistedflow</span> plugin new my-plugin <span class="flag">--category</span> Utility <span class="flag">--node</span> Hello
 <span class="comment"># edit my-plugin/src/lib.rs</span>
 cd my-plugin
 <span class="cmd">twistedflow</span> plugin build</code></pre>
-        <p>The <code>plugin new</code> command scaffolds a complete Rust crate (Cargo.toml, src/lib.rs, README, .gitignore). The <code>plugin build</code> command compiles to <code>wasm32-wasip1</code>, validates the output, and installs to the right directory automatically.</p>
+        <p>The <code>plugin new</code> command scaffolds a complete Rust crate. The <code>plugin build</code> command compiles to <code>wasm32-wasip1</code>, validates the output, and installs into the nearest parent TwistedFlow project's <code>nodes/</code> directory by default.</p>
+
+        <h2>Desktop authoring</h2>
+        <ol>
+          <li>Open a project</li>
+          <li>Open the <strong>Custom Nodes</strong> tab in the bottom workspace</li>
+          <li>Click <strong>New Node</strong></li>
+          <li>Edit the generated Rust source in your editor</li>
+          <li>Click <strong>Build Plugin</strong> on the node tile</li>
+        </ol>
+        <p>The desktop app writes source under <code>&lt;project&gt;/nodes-src/</code> and installs validated artifacts into <code>&lt;project&gt;/nodes/</code>.</p>
 
         <h2>The <code>nodes!</code> macro</h2>
         <p>Declare one or more nodes in a single <code>nodes! { ... }</code> block:</p>
@@ -1428,8 +1443,12 @@ host::log(<span class="str">"starting heavy work"</span>);</code></pre>
           &nbsp;&nbsp;<span class="dir">flows/</span><br>
           &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">main.flow.json</span><br>
           &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">health-check.flow.json</span><br>
-          &nbsp;&nbsp;<span class="dir">nodes/</span> <span class="note">&mdash; project WASM plugins</span><br>
-          &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">my-custom-node.wasm</span>
+          &nbsp;&nbsp;<span class="dir">nodes/</span> <span class="note">&mdash; built/installed project custom nodes</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">my-custom-node.wasm</span><br>
+          &nbsp;&nbsp;<span class="dir">nodes-src/</span> <span class="note">&mdash; optional editable Rust source for those nodes</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">my-custom-node/</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">Cargo.toml</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">src/lib.rs</span>
         </div>
 
         <h2>twistedflow.toml</h2>
