@@ -43,18 +43,7 @@ impl Node for RedirectNode {
                     .to_string()
             };
 
-            // Find _requestId
-            let request_id = {
-                let out = ctx.outputs.lock().await;
-                let mut found = None;
-                for (_node_id, node_out) in out.iter() {
-                    if let Some(Value::String(id)) = node_out.get("_requestId") {
-                        found = Some(id.clone());
-                        break;
-                    }
-                }
-                found
-            };
+            let request_id = ctx.current_request_id().await;
 
             if let Some(req_id) = &request_id {
                 let mut headers = HashMap::new();
@@ -65,7 +54,7 @@ impl Node for RedirectNode {
                     http_listen::HttpResponseData {
                         status,
                         headers,
-                        body: String::new(),
+                        body: Vec::new(),
                     },
                 );
                 if !sent {

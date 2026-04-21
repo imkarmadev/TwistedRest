@@ -1,7 +1,7 @@
 //! Send Response node — sends an HTTP response back to the client.
 //!
-//! Reads _requestId from the OnEvent payload to find the correct
-//! response channel, then writes status + body to it.
+//! Uses the current HTTP handler context to find the correct response
+//! channel, then writes status + body to it.
 
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -43,6 +43,7 @@ impl Node for SendResponseNode {
                 Value::Null => String::new(),
                 other => serde_json::to_string(other).unwrap_or_default(),
             };
+            let body_len = body_str.len();
 
             // Read headers from config
             let mut headers = HashMap::new();
@@ -67,19 +68,7 @@ impl Node for SendResponseNode {
                 }
             }
 
-            // Find the _requestId from the OnEvent listener's outputs.
-            // The HTTP Listen node puts it in the event payload.
-            let request_id = {
-                let out = ctx.outputs.lock().await;
-                let mut found = None;
-                for (_node_id, node_out) in out.iter() {
-                    if let Some(Value::String(id)) = node_out.get("_requestId") {
-                        found = Some(id.clone());
-                        break;
-                    }
-                }
-                found
-            };
+            let request_id = ctx.current_request_id().await;
 
             if let Some(req_id) = &request_id {
                 let sent = http_listen::send_response(
@@ -87,7 +76,7 @@ impl Node for SendResponseNode {
                     http_listen::HttpResponseData {
                         status,
                         headers,
-                        body: body_str.clone(),
+                        body: body_str.into_bytes(),
                     },
                 );
                 if !sent {
@@ -106,7 +95,7 @@ impl Node for SendResponseNode {
             NodeResult::Continue {
                 output: Some(json!({
                     "status": status,
-                    "bodyLength": body_str.len(),
+                    "bodyLength": body_len,
                 })),
             }
         })

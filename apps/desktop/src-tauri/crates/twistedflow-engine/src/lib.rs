@@ -21,4 +21,4 @@ pub use node::{
 };
 pub use subflow::{call_subflow, load_subflows, SubflowNode, SubflowReturn, MAX_SUBFLOW_DEPTH};
 pub use template::{input_pins_for, render_template};
-pub use wasm_host::{load_wasm_plugins, validate_wasm};
+pub use wasm_host::{load_wasm_plugins, load_wasm_plugins_from_bytes, validate_wasm};

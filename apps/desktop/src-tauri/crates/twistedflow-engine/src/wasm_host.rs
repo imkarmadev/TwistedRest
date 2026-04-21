@@ -392,6 +392,40 @@ pub fn load_wasm_plugins(dirs: &[&str]) -> Vec<(&'static str, Box<dyn Node>, Nod
     result
 }
 
+/// Load embedded WASM plugins from in-memory bytes.
+/// The provided label is used only for diagnostic logging.
+pub fn load_wasm_plugins_from_bytes(
+    plugins: &[(&str, &[u8])],
+) -> Vec<(&'static str, Box<dyn Node>, NodeMetadata)> {
+    let engine = Engine::default();
+    let mut result = Vec::new();
+
+    for (label, wasm_bytes) in plugins {
+        match load_single_wasm_bytes(&engine, wasm_bytes, label) {
+            Ok(nodes) => {
+                for (type_id, node, meta) in nodes {
+                    log::info!(
+                        "[wasm-plugins] loaded embedded '{}' ({}) from {}",
+                        meta.name,
+                        type_id,
+                        label
+                    );
+                    result.push((type_id, node, meta));
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "[wasm-plugins] failed to load embedded {}: {}",
+                    label,
+                    e
+                );
+            }
+        }
+    }
+
+    result
+}
+
 /// Load a single .wasm file and return all nodes it declares.
 fn load_single_wasm(
     engine: &Engine,
@@ -400,8 +434,16 @@ fn load_single_wasm(
     let wasm_bytes =
         std::fs::read(path).map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
 
-    let module =
-        Module::new(engine, &wasm_bytes).map_err(|e| format!("WASM compile error: {}", e))?;
+    load_single_wasm_bytes(engine, &wasm_bytes, &path.display().to_string())
+}
+
+fn load_single_wasm_bytes(
+    engine: &Engine,
+    wasm_bytes: &[u8],
+    source_label: &str,
+) -> Result<Vec<(&'static str, Box<dyn Node>, NodeMetadata)>, String> {
+    let module = Module::new(engine, wasm_bytes)
+        .map_err(|e| format!("WASM compile error in {}: {}", source_label, e))?;
 
     let defs = read_wasm_metadata(engine, &module)?;
 

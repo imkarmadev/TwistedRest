@@ -384,8 +384,8 @@ export default function App() {
           onBuildFlow={() => buildFlowRef.current()}
           onOpenProject={handleOpenProject}
           onCreateProject={(parentPath, name) => {
-            void invoke("create_project", { parentPath, name }).then(() => {
-              handleOpenProject(`${parentPath}/${name}`);
+            void invoke<{ path: string; name: string }>("create_project", { parentPath, name }).then((project) => {
+              handleOpenProject(project.path);
             });
           }}
           onOpenSettings={() => setSettingsOpen(true)}

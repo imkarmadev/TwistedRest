@@ -40,7 +40,7 @@ export function ProjectBar({
   const handleCreateProject = async () => {
     const selected = await pickFolder({
       directory: true,
-      title: "Choose parent folder for new project",
+      title: "Choose location for new project",
     });
     if (selected && typeof selected === "string") {
       setCreateParentPath(selected);

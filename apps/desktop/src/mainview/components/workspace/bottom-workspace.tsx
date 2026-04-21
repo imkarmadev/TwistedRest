@@ -138,7 +138,7 @@ export function BottomWorkspace({
 
   useEffect(() => {
     void loadFlows();
-  }, [loadFlows, activeFlowFilename]);
+  }, [loadFlows]);
 
   useEffect(() => {
     void loadCustomNodes();
@@ -253,6 +253,11 @@ export function BottomWorkspace({
     },
     [activeTab, onTabChange],
   );
+
+  const handleFlowPick = useCallback((filename: string) => {
+    onSelectFlow(filename);
+    onTabChange(null);
+  }, [onSelectFlow, onTabChange]);
 
   const openFlowDraft = useCallback((mode: "flow" | "subflow") => {
     setFlowDraftMode(mode);
@@ -415,6 +420,7 @@ export function BottomWorkspace({
                 void loadFlows();
               }}
               onNodeCatalogChange={onNodeCatalogChange}
+              onPickFlow={handleFlowPick}
               onSelectFlow={onSelectFlow}
             />
           )}
@@ -442,6 +448,7 @@ export function BottomWorkspace({
                 void loadFlows();
               }}
               onNodeCatalogChange={onNodeCatalogChange}
+              onPickFlow={handleFlowPick}
               onSelectFlow={onSelectFlow}
             />
           )}
@@ -531,6 +538,7 @@ function FlowListTab({
   onDraftSubmit,
   onReload,
   onNodeCatalogChange,
+  onPickFlow,
   onSelectFlow,
 }: {
   title: string;
@@ -550,6 +558,7 @@ function FlowListTab({
   onDraftSubmit: () => void;
   onReload: () => void;
   onNodeCatalogChange: () => void;
+  onPickFlow: (filename: string) => void;
   onSelectFlow: (filename: string) => void;
 }) {
   const [renameTarget, setRenameTarget] = useState<FlowItem | null>(null);
@@ -557,6 +566,10 @@ function FlowListTab({
   const [renameError, setRenameError] = useState<string | null>(null);
   const [busyFilename, setBusyFilename] = useState<string | null>(null);
   const [confirmDeleteFilename, setConfirmDeleteFilename] = useState<string | null>(null);
+
+  const selectFlow = useCallback((filename: string) => {
+    onPickFlow(filename);
+  }, [onPickFlow]);
 
   const startRename = useCallback((item: FlowItem) => {
     setRenameTarget(item);
@@ -671,34 +684,57 @@ function FlowListTab({
         ) : items.length === 0 ? (
           <EmptyState title={`No ${title.toLowerCase()} yet.`} />
         ) : (
-          items.map((item) => (
+          items.map((item) => {
+            const isRenaming = renameTarget?.filename === item.filename;
+
+            return (
             <div
               key={item.filename}
-              className={`${s.listRow} ${item.filename === activeFlowFilename ? s.listRowActive : ""}`}
+              className={`${s.listRow} ${item.filename === activeFlowFilename ? s.listRowActive : ""} ${isRenaming ? s.listRowEditing : ""}`}
+              role={isRenaming ? undefined : "button"}
+              tabIndex={isRenaming ? -1 : 0}
+              onClick={() => {
+                if (!isRenaming) {
+                  selectFlow(item.filename);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (isRenaming || e.target !== e.currentTarget) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  selectFlow(item.filename);
+                }
+              }}
             >
-              {renameTarget?.filename === item.filename ? (
-                <div className={s.rowEditor}>
-                  <input
-                    autoFocus
-                    className={s.inlineInput}
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void submitRename();
-                      if (e.key === "Escape") cancelRename();
-                    }}
-                    placeholder={`Rename ${kind}`}
-                  />
-                  <div className={s.rowEditorActions}>
-                    <CardButton label="Cancel" onClick={cancelRename} />
-                    <CardButton
-                      label={busyFilename === item.filename ? "Saving..." : "Save"}
-                      primary
-                      disabled={busyFilename === item.filename}
-                      onClick={() => {
-                        void submitRename();
+              {isRenaming ? (
+                <div
+                  className={s.rowEditor}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <div className={s.rowEditorMain}>
+                    <input
+                      autoFocus
+                      className={s.inlineInput}
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void submitRename();
+                        if (e.key === "Escape") cancelRename();
                       }}
+                      placeholder={`Rename ${kind}`}
                     />
+                    <div className={s.rowEditorActions}>
+                      <CardButton label="Cancel" onClick={cancelRename} />
+                      <CardButton
+                        label={busyFilename === item.filename ? "Saving..." : "Save"}
+                        primary
+                        disabled={busyFilename === item.filename}
+                        onClick={() => {
+                          void submitRename();
+                        }}
+                      />
+                    </div>
                   </div>
                   {renameError && (
                     <div className={`${s.feedbackLine} ${s.feedbackError} ${s.inlineFeedback}`}>
@@ -711,7 +747,10 @@ function FlowListTab({
                   <button
                     type="button"
                     className={s.listMainButton}
-                    onClick={() => onSelectFlow(item.filename)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectFlow(item.filename);
+                    }}
                   >
                     <span className={s.listPrimary}>
                       {runningFlows.has(item.filename) && <span className={s.runningDot} />}
@@ -719,7 +758,11 @@ function FlowListTab({
                     </span>
                     <span className={s.listMeta}>{item.filename}</span>
                   </button>
-                  <div className={s.rowActions}>
+                  <div
+                    className={s.rowActions}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
                     <CardButton label="Rename" onClick={() => startRename(item)} />
                     <CardButton
                       label={
@@ -743,7 +786,8 @@ function FlowListTab({
                 </>
               )}
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>
@@ -1070,7 +1114,10 @@ function CardButton({
       type="button"
       disabled={disabled}
       className={`${s.cardButton} ${primary ? s.cardButtonPrimary : ""} ${danger ? s.cardButtonDanger : ""}`}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
     >
       {label}
     </button>

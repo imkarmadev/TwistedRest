@@ -17,6 +17,7 @@ use tokio_util::sync::CancellationToken;
 pub struct RunFlowOpts {
     pub index: Arc<GraphIndex>,
     pub context: ExecContext,
+    pub run_key: String,
     pub on_status: Box<dyn Fn(&str, StatusEvent) + Send + Sync>,
     pub on_log: Arc<dyn Fn(LogEntry) + Send + Sync>,
     pub cancel: CancellationToken,

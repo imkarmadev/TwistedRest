@@ -9,6 +9,7 @@
     "hmr": "vite --port 5173",
     "vite:build": "vite build",
     "build": "tauri build",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml --workspace",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

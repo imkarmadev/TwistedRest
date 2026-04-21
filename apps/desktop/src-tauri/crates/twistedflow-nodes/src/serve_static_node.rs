@@ -119,46 +119,19 @@ impl Node for ServeStaticNode {
                 entry.insert("found".into(), Value::Bool(true));
             }
 
-            // Find _requestId and send response
-            let request_id = {
-                let out = ctx.outputs.lock().await;
-                let mut found = None;
-                for (_node_id, node_out) in out.iter() {
-                    if let Some(Value::String(id)) = node_out.get("_requestId") {
-                        found = Some(id.clone());
-                        break;
-                    }
-                }
-                found
-            };
+            let request_id = ctx.current_request_id().await;
 
             if let Some(req_id) = &request_id {
                 let mut headers = HashMap::new();
                 headers.insert("Content-Type".to_string(), mime.clone());
                 headers.insert("Content-Length".to_string(), content_len.to_string());
 
-                // For text types, decode as UTF-8. For binary, preserve
-                // bytes via Latin-1 mapping (each byte → one char) so
-                // write_all(as_bytes()) on the socket reproduces them exactly.
-                let is_text = mime.starts_with("text/")
-                    || mime.contains("json")
-                    || mime.contains("javascript")
-                    || mime.contains("xml")
-                    || mime.contains("svg")
-                    || mime.contains("css");
-
-                let body = if is_text {
-                    String::from_utf8_lossy(&content).into_owned()
-                } else {
-                    content.iter().map(|&b| b as char).collect::<String>()
-                };
-
                 let sent = http_listen::send_response(
                     req_id,
                     http_listen::HttpResponseData {
                         status: 200,
                         headers,
-                        body,
+                        body: content,
                     },
                 );
                 if !sent {

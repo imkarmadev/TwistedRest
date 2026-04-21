@@ -10,13 +10,21 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use twistedflow_engine::node::{Node, NodeCtx, NodeResult};
 use twistedflow_macros::node;
 
-/// Global rate limit state: key → list of request timestamps.
-static RATE_LIMIT_STATE: std::sync::LazyLock<std::sync::Mutex<HashMap<String, Vec<Instant>>>> =
+#[derive(Clone)]
+struct RateLimitBucket {
+    timestamps: Vec<Instant>,
+    last_seen: Instant,
+}
+
+/// Global rate limit state: run/node/client bucket → request timestamps.
+static RATE_LIMIT_STATE: std::sync::LazyLock<std::sync::Mutex<HashMap<String, RateLimitBucket>>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
+const RATE_LIMIT_IDLE_TTL: Duration = Duration::from_secs(60 * 60);
 
 #[node(
     name = "Rate Limit",
@@ -88,19 +96,25 @@ impl Node for RateLimitNode {
 
             let window = std::time::Duration::from_millis(window_ms);
             let now = Instant::now();
+            let bucket_key = rate_limit_bucket_key(&ctx.opts.run_key, ctx.node_id, &key);
 
             let (count, remaining, reset_ms) = {
                 let mut state = RATE_LIMIT_STATE.lock().unwrap();
-                let timestamps = state.entry(key.clone()).or_default();
+                prune_rate_limit_state(&mut state, now);
+                let bucket = state.entry(bucket_key).or_insert_with(|| RateLimitBucket {
+                    timestamps: Vec::new(),
+                    last_seen: now,
+                });
+                bucket.last_seen = now;
 
                 // Remove expired entries
-                timestamps.retain(|t| now.duration_since(*t) < window);
+                bucket.timestamps.retain(|t| now.duration_since(*t) < window);
 
-                let count = timestamps.len() as u64;
+                let count = bucket.timestamps.len() as u64;
                 let remaining = max_requests.saturating_sub(count + 1);
 
                 // Approximate reset time: when the oldest entry expires
-                let reset_ms = if let Some(oldest) = timestamps.first() {
+                let reset_ms = if let Some(oldest) = bucket.timestamps.first() {
                     let elapsed = now.duration_since(*oldest);
                     window.saturating_sub(elapsed).as_millis() as u64
                 } else {
@@ -108,7 +122,7 @@ impl Node for RateLimitNode {
                 };
 
                 if count < max_requests {
-                    timestamps.push(now);
+                    bucket.timestamps.push(now);
                 }
 
                 (count, remaining, reset_ms)
@@ -148,5 +162,56 @@ impl Node for RateLimitNode {
                 }
             }
         })
+    }
+}
+
+fn rate_limit_bucket_key(run_key: &str, node_id: &str, client_key: &str) -> String {
+    format!("{}\u{1f}{}\u{1f}{}", run_key, node_id, client_key)
+}
+
+fn prune_rate_limit_state(state: &mut HashMap<String, RateLimitBucket>, now: Instant) {
+    state.retain(|_, bucket| {
+        !bucket.timestamps.is_empty() || now.duration_since(bucket.last_seen) < RATE_LIMIT_IDLE_TTL
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bucket_key_is_scoped_by_run_and_node() {
+        let a = rate_limit_bucket_key("run-a", "node-1", "client");
+        let b = rate_limit_bucket_key("run-b", "node-1", "client");
+        let c = rate_limit_bucket_key("run-a", "node-2", "client");
+
+        assert_ne!(a, b);
+        assert_ne!(a, c);
+    }
+
+    #[test]
+    fn prune_removes_idle_empty_buckets() {
+        let now = Instant::now();
+        let mut state = HashMap::from([
+            (
+                "stale".to_string(),
+                RateLimitBucket {
+                    timestamps: Vec::new(),
+                    last_seen: now - (RATE_LIMIT_IDLE_TTL + Duration::from_secs(1)),
+                },
+            ),
+            (
+                "active".to_string(),
+                RateLimitBucket {
+                    timestamps: vec![now],
+                    last_seen: now,
+                },
+            ),
+        ]);
+
+        prune_rate_limit_state(&mut state, now);
+
+        assert!(!state.contains_key("stale"));
+        assert!(state.contains_key("active"));
     }
 }

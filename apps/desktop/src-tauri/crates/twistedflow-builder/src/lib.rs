@@ -87,6 +87,8 @@ pub fn build(
     let tmp = tempfile::tempdir().map_err(|e| format!("Tempdir: {}", e))?;
     let build_dir = tmp.path();
     std::fs::create_dir_all(build_dir.join("src")).map_err(|e| e.to_string())?;
+    let assets_dir = build_dir.join("assets");
+    std::fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
 
     let bin_name = sanitize(&project_name);
     let engine_path = format!("{}/twistedflow-engine", CRATES_DIR).replace('\\', "/");
@@ -137,6 +139,43 @@ reqwest = {{ version = "0.12", default-features = false, features = ["rustls-tls
         .replace('"', "\\\"")
         .replace('\n', "\\n");
 
+    let project_nodes = project.join("nodes");
+    let mut embedded_node_consts = Vec::new();
+    let mut embedded_node_entries = Vec::new();
+    if project_nodes.is_dir() {
+        for (index, entry) in std::fs::read_dir(&project_nodes)
+            .map_err(|e| e.to_string())?
+            .flatten()
+            .enumerate()
+        {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("wasm") {
+                continue;
+            }
+
+            let Some(file_name) = path.file_name().and_then(|value| value.to_str()) else {
+                continue;
+            };
+            let dest = assets_dir.join(file_name);
+            std::fs::copy(&path, &dest)
+                .map_err(|e| format!("Copy embedded node {}: {}", path.display(), e))?;
+
+            let escaped_file_name = file_name.replace('\\', "\\\\").replace('"', "\\\"");
+            let const_name = format!("EMBEDDED_WASM_{}", index);
+            embedded_node_consts.push(format!(
+                "const {}: &[u8] = include_bytes!(\"../assets/{}\");",
+                const_name, escaped_file_name
+            ));
+            embedded_node_entries.push(format!("(\"{}\", {})", escaped_file_name, const_name));
+        }
+    }
+    let embedded_node_consts = embedded_node_consts.join("\n");
+    let embedded_node_entries = if embedded_node_entries.is_empty() {
+        "Vec::new()".to_string()
+    } else {
+        format!("vec![{}]", embedded_node_entries.join(", "))
+    };
+
     let main_rs = format!(
         r##"//! Built by `twistedflow build`. Flow: {flow_name}, Env: {env_name}
 extern crate twistedflow_nodes;
@@ -146,7 +185,7 @@ use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use twistedflow_engine::{{
     FlowFile, FlowKind, GraphIndex, LogEntry, RunFlowOpts, StatusEvent, SubflowNode,
-    build_registry, load_wasm_plugins,
+    build_registry, load_wasm_plugins, load_wasm_plugins_from_bytes,
 }};
 use serde_json::Value;
 use std::sync::Arc as StdArc;
@@ -154,6 +193,7 @@ use std::sync::Arc as StdArc;
 const FLOW_JSON: &str = "{escaped_flow}";
 const ENV_CONTENT: &str = "{escaped_env}";
 const SUBFLOWS_JSON: &str = "{escaped_subflows}";
+{embedded_node_consts}
 
 fn parse_dotenv(content: &str) -> HashMap<String, Value> {{
     let mut map = HashMap::new();
@@ -189,6 +229,10 @@ async fn main() {{
         let nodes_dir = nodes_dir.to_string_lossy().to_string();
         for (id, node, _) in load_wasm_plugins(&[nodes_dir.as_str()]) {{ registry.insert(id.to_string(), node); }}
     }}
+    let embedded_wasm_plugins: Vec<(&str, &[u8])> = {embedded_node_entries};
+    for (id, node, _) in load_wasm_plugins_from_bytes(&embedded_wasm_plugins) {{
+        registry.insert(id.to_string(), node);
+    }}
 
     if !SUBFLOWS_JSON.is_empty() {{
         if let Ok(subflows) = serde_json::from_str::<Vec<String>>(SUBFLOWS_JSON) {{
@@ -211,6 +255,7 @@ async fn main() {{
     let env_vars = parse_dotenv(ENV_CONTENT);
     let context = twistedflow_engine::ExecContext {{
         env_vars: if env_vars.is_empty() {{ None }} else {{ Some(env_vars) }},
+        variables: flow_file.variables.clone(),
         ..Default::default()
     }};
 
@@ -236,7 +281,7 @@ async fn main() {{
     tokio::spawn(async move {{ tokio::signal::ctrl_c().await.ok(); cc.cancel(); }});
 
     let opts = Arc::new(RunFlowOpts {{
-        index, context, on_status, on_log, cancel,
+        index, context, run_key: format!("built:{flow_name}:{env_name}"), on_status, on_log, cancel,
         http_client: reqwest::Client::builder().user_agent("TwistedFlow-Built/1.0").build().unwrap(),
         registry: StdArc::new(registry),
         processes: std::sync::Arc::new(tokio::sync::Mutex::new(Vec::new())),
@@ -254,6 +299,8 @@ async fn main() {{
         escaped_flow = escaped_flow,
         escaped_env = escaped_env,
         escaped_subflows = escaped_subflows,
+        embedded_node_consts = embedded_node_consts,
+        embedded_node_entries = embedded_node_entries,
     );
 
     std::fs::write(build_dir.join("src/main.rs"), main_rs).map_err(|e| e.to_string())?;
@@ -278,38 +325,48 @@ async fn main() {{
         std::env::current_dir().unwrap_or_default().join(output)
     };
 
+    if let Some(parent) = out_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Create output dir: {}", e))?;
+    }
+
     std::fs::copy(&built, &out_path).map_err(|e| format!("Copy: {}", e))?;
 
-    let project_nodes = project.join("nodes");
     if project_nodes.is_dir() {
         let out_nodes = out_path
             .parent()
             .unwrap_or_else(|| Path::new("."))
             .join("nodes");
-        std::fs::create_dir_all(&out_nodes).map_err(|e| format!("Create nodes dir: {}", e))?;
-        let mut copied_nodes = 0usize;
-        for entry in std::fs::read_dir(&project_nodes)
-            .map_err(|e| e.to_string())?
-            .flatten()
-        {
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("wasm") {
-                continue;
-            }
-            let Some(file_name) = path.file_name() else {
-                continue;
-            };
-            let dest = out_nodes.join(file_name);
-            std::fs::copy(&path, &dest)
-                .map_err(|e| format!("Copy node {}: {}", path.display(), e))?;
-            copied_nodes += 1;
-        }
-        if copied_nodes > 0 {
+        if out_nodes == project_nodes {
             eprintln!(
-                "Copied {} custom node artifact(s) to {}",
-                copied_nodes,
+                "Using existing custom node artifacts at {}",
                 out_nodes.display()
             );
+        } else {
+            std::fs::create_dir_all(&out_nodes).map_err(|e| format!("Create nodes dir: {}", e))?;
+            let mut copied_nodes = 0usize;
+            for entry in std::fs::read_dir(&project_nodes)
+                .map_err(|e| e.to_string())?
+                .flatten()
+            {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("wasm") {
+                    continue;
+                }
+                let Some(file_name) = path.file_name() else {
+                    continue;
+                };
+                let dest = out_nodes.join(file_name);
+                std::fs::copy(&path, &dest)
+                    .map_err(|e| format!("Copy node {}: {}", path.display(), e))?;
+                copied_nodes += 1;
+            }
+            if copied_nodes > 0 {
+                eprintln!(
+                    "Copied {} custom node artifact(s) to {}",
+                    copied_nodes,
+                    out_nodes.display()
+                );
+            }
         }
     }
 

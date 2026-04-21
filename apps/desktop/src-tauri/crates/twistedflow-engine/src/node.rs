@@ -183,6 +183,9 @@ pub type Outputs = HashMap<String, HashMap<String, Value>>;
 /// Shared per-run log of tap node values.
 pub type TapLogs = HashMap<String, Vec<Value>>;
 
+/// Reserved outputs entry for request-scoped HTTP handler metadata.
+pub const REQUEST_CONTEXT_NODE_ID: &str = "__request__";
+
 // ── Node trait system ───────────────────────────────────────────────
 
 use crate::executor::RunFlowOpts;
@@ -336,6 +339,16 @@ impl<'a> NodeCtx<'a> {
         out.entry(node_id.to_string())
             .or_default()
             .insert(key.to_string(), value);
+    }
+
+    /// Return the current HTTP request id when executing inside an HTTP Listen
+    /// handler chain.
+    pub async fn current_request_id(&self) -> Option<String> {
+        let out = self.outputs.lock().await;
+        out.get(REQUEST_CONTEXT_NODE_ID)
+            .and_then(|request| request.get("id"))
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string())
     }
 
     /// Spawn a background exec chain (for event listeners).

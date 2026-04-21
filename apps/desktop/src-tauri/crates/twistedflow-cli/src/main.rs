@@ -210,7 +210,7 @@ async fn run_flow(
             Some(env_map)
         },
         auth: None,
-        variables: None,
+        variables: flow_file.variables.clone(),
     };
 
     // 6. Set up status + log callbacks
@@ -269,6 +269,7 @@ async fn run_flow(
     let opts = Arc::new(RunFlowOpts {
         index,
         context,
+        run_key: format!("cli:{}", file.display()),
         on_status,
         on_log,
         cancel,

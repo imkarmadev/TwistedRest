@@ -436,6 +436,7 @@ async fn run_subchain_with_index(
     let nested_opts = Arc::new(RunFlowOpts {
         index: index.clone(),
         context,
+        run_key: parent.run_key.clone(),
         on_status: {
             let parent = parent.clone();
             Box::new(move |node_id: &str, event: StatusEvent| {

@@ -179,9 +179,14 @@ fn env_filename_from_name(name: &str) -> String {
 /// Create a new project folder with scaffolding.
 #[tauri::command]
 pub fn create_project(parent_path: String, name: String) -> Result<ProjectInfo, String> {
-    let project_dir = Path::new(&parent_path).join(&name);
+    let selected_dir = Path::new(&parent_path);
+    let project_dir = if should_use_selected_dir_as_project_root(selected_dir, &name)? {
+        selected_dir.to_path_buf()
+    } else {
+        selected_dir.join(&name)
+    };
 
-    if project_dir.exists() {
+    if project_dir.exists() && project_dir != selected_dir {
         return Err(format!("Folder already exists: {}", project_dir.display()));
     }
 
@@ -225,6 +230,31 @@ pub fn create_project(parent_path: String, name: String) -> Result<ProjectInfo, 
         path: project_dir.to_string_lossy().to_string(),
         name,
     })
+}
+
+fn should_use_selected_dir_as_project_root(selected_dir: &Path, name: &str) -> Result<bool, String> {
+    let selected_name = selected_dir.file_name().and_then(|value| value.to_str());
+    if selected_name != Some(name) {
+        return Ok(false);
+    }
+
+    is_effectively_empty_dir(selected_dir)
+}
+
+fn is_effectively_empty_dir(dir: &Path) -> Result<bool, String> {
+    let entries =
+        std::fs::read_dir(dir).map_err(|e| format!("Cannot read selected folder: {}", e))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Cannot inspect selected folder: {}", e))?;
+        let file_name = entry.file_name();
+        if file_name.to_string_lossy() == ".DS_Store" {
+            continue;
+        }
+        return Ok(false);
+    }
+
+    Ok(true)
 }
 
 /// Open an existing project folder.

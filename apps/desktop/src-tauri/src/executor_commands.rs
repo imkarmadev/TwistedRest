@@ -110,6 +110,7 @@ pub async fn run_flow(
     let opts = Arc::new(RunFlowOpts {
         index,
         context: exec_ctx,
+        run_key: format!("desktop:{}:{}", project_path, flow_id),
         on_status,
         on_log,
         cancel: cancel.clone(),

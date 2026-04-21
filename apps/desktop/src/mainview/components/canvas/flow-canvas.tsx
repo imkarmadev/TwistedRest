@@ -253,11 +253,19 @@ function FlowCanvasInner({
   // These run regardless of whether *this* canvas started the run —
   // reconnects automatically when switching back to a running flow.
   useEffect(() => {
-    let unlistenStatus: UnlistenFn | null = null;
-    let unlistenLog: UnlistenFn | null = null;
+    let disposed = false;
+    const unlisteners: UnlistenFn[] = [];
+
+    const trackUnlisten = (unlisten: UnlistenFn) => {
+      if (disposed) {
+        unlisten();
+        return;
+      }
+      unlisteners.push(unlisten);
+    };
 
     void (async () => {
-      unlistenStatus = await listen<{
+      const unlistenStatus = await listen<{
         flowId: string;
         nodeId: string;
         status: NodeStatus;
@@ -278,8 +286,9 @@ function FlowCanvasInner({
           setRawResponses((prev) => ({ ...prev, [nodeId]: rawResponse }));
         }
       });
+      trackUnlisten(unlistenStatus);
 
-      unlistenLog = await listen<{
+      const unlistenLog = await listen<{
         flowId: string;
         nodeId: string;
         label: string;
@@ -288,11 +297,14 @@ function FlowCanvasInner({
         if (e.payload.flowId !== flowFilename) return;
         onLog(e.payload);
       });
+      trackUnlisten(unlistenLog);
     })();
 
     return () => {
-      unlistenStatus?.();
-      unlistenLog?.();
+      disposed = true;
+      for (const unlisten of unlisteners) {
+        unlisten();
+      }
     };
   }, [flowFilename, onLog]);
 
@@ -319,6 +331,20 @@ function FlowCanvasInner({
       getInputPinSourceType(nodeId, inputPinId, nodes, edges),
     );
   }, [nodes, edges, registerGetInputType]);
+
+  useEffect(() => {
+    if (loading) return;
+    const dynamicSubflowNodeIds = nodes
+      .filter((node) => node.type === "subflowInputs" || node.type === "subflowOutputs")
+      .map((node) => node.id);
+    if (dynamicSubflowNodeIds.length === 0) return;
+
+    queueMicrotask(() => {
+      for (const nodeId of dynamicSubflowNodeIds) {
+        rfUpdateNodeInternals(nodeId);
+      }
+    });
+  }, [flowInterface, loading, nodes, rfUpdateNodeInternals]);
 
   // Track whether the current state came from the server (skip first save).
   const justLoadedRef = useRef(true);
@@ -764,10 +790,12 @@ function FlowCanvasInner({
   const buildFlow = useCallback(async () => {
     if (building || !projectPath || !flowFilename) return;
 
+    const outputName = flowFilename.replace(".flow.json", "").replace(".json", "");
+
     // Pick output location
     const outputPath = await saveDialog({
       title: "Save Binary As",
-      defaultPath: flowFilename.replace(".flow.json", "").replace(".json", ""),
+      defaultPath: `${projectPath.replace(/[\\/]+$/, "")}/${outputName}`,
     });
     if (!outputPath) return;
 
